@@ -236,7 +236,7 @@ def main(args):
 
     # Download and load training data
     train_dataset = torchvision.datasets.MNIST(
-        root="./MNIST_experiment/data", train=True, transform=transform, download=False
+        root="./MNIST_experiment/data", train=True, transform=transform, download=True
     )
     train_loader = torch.utils.data.DataLoader(
         dataset=train_dataset, batch_size=batch_size, shuffle=False
