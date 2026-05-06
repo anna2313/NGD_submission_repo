@@ -13,5 +13,24 @@ Sin regression: ./sinexperiment_no_training.sh
 Binary classification: ./easy_classification_no_training.sh
 MNIST classification: ./MNIST_experiment_no_training.sh
 
+then for each folder run python {folder_name}/merge_run_jsons.py --optimizer=EFAdam and {folder_name}/merge_run_jsons.py --optimizer=ReAdam
+then to get the plots for each folder run 
+
+python plot_results.py {folder_name}/results/results_ReAdam.json {folder_name}/results/results_EFAdam.json --beta2 {beta_values} --batch-size {batch_sizes} --fisher-types 'adam' --output-path {folder_name}
+python plot_results.py {folder_name}/results/results_EFAdam.json --beta2 {beta_values}  --batch-size {batch_sizes} --fisher-types 'adam' 'empirical' --output-path {folder_name}
+python plot_results.py {folder_name}/results/results_ReAdam.json {folder_name}/results/results_EFAdam.json --beta2 {beta_values} --batch-size {batch_sizes} --fisher-types 'empirical' --output-path {folder_name}
+python plot_results.py {folder_name}/results/results_ReAdam.json --beta2 {beta_values}  --batch-size {batch_sizes} --fisher-types 'adam' 'empirical' --output-path {folder_name}
+
+(for linear regression, sin regression and binary classification {batch_sizes} should be 1 10 50 100 150 300 and {beta_values} should be 0.9 0.99 0.999 0.9999 and for MNIST they should be 1 1000 5000 25000 50000 and 0.9 0.99 0.999 respectively)
+
+# Experiments with training 
+
+First we ran hyperparameter tuning on the learning rates. For this run the following sh files:
+
+Linear regression: ./linearregexperiment_hy.sh
+Sin regression: ./sinexperiment_no_training.sh
+Binary classification: ./easy_classification_no_training.sh
+MNIST classification: ./MNIST_experiment_no_training.sh
+
 
 Acknowledgements: This repository uses some files of the ASDL: Automatic Second-order Differentiation Library https://github.com/kazukiosawa/asdl
