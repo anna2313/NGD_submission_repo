@@ -6,7 +6,12 @@ A general note: we have 4 set-ups (dataset, models, training files, etc.) in fol
 
 # Experiments without training 
 
-Linear regression: ./linearreg_experiment.sh
-Sin regression: ./sin_
+Run these from the root directory
+
+Linear regression: ./linearregexperiment_no_training.sh
+Sin regression: ./sinexperiment_no_training.sh
+Binary classification: ./easy_classification_no_training.sh
+MNIST classification: ./MNIST_experiment_no_training.sh
+
 
 Acknowledgements: This repository uses some files of the ASDL: Automatic Second-order Differentiation Library https://github.com/kazukiosawa/asdl
