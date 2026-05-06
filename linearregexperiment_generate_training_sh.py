@@ -3,7 +3,7 @@ import json
 # ==========================================
 # Configuration
 # ==========================================
-json_file_path = "linearregexperiment/saved_results/your_results_file.json" # <-- UPDATE THIS
+json_file_path = "linearregexperiment/saved_results/best_learning_rates_selected_optimizers.json" # <-- UPDATE THIS
 output_sh_file = "run_best_linear_experiments_local.sh"
 
 # Read the JSON file
