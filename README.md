@@ -27,10 +27,10 @@ python plot_results.py {folder_name}/results/results_ReAdam.json --beta2 {beta_v
 
 First we ran hyperparameter tuning on the learning rates. For this run the following sh files:
 
-Linear regression: ./linearregexperiment_hy.sh
-Sin regression: ./sinexperiment_no_training.sh
-Binary classification: ./easy_classification_no_training.sh
-MNIST classification: ./MNIST_experiment_no_training.sh
+Linear regression: ./linearregexperiment_hyperparam_tuning.sh
+Sin regression: ./sinexperiment_hyperparam_tuning.sh
+Binary classification: ./easy_classification_hyperparam_tuning.sh
+MNIST classification: ./MNIST_experiment_hyperparam_tuning.sh
 
 
 Acknowledgements: This repository uses some files of the ASDL: Automatic Second-order Differentiation Library https://github.com/kazukiosawa/asdl
