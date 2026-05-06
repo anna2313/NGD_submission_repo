@@ -32,5 +32,14 @@ Sin regression: ./sinexperiment_hyperparam_tuning.sh
 Binary classification: ./easy_classification_hyperparam_tuning.sh
 MNIST classification: ./MNIST_experiment_hyperparam_tuning.sh
 
+Afterwards run python {folder_name}/merge_run_hyper_jsons.py --optimizer EFAdam ReAdam --output {folder_name}/saved_results
+
+For the actual training run the following sh files:
+
+Linear regression: ./linearregexperiment_training.sh
+Sin regression: ./sinexperiment_training.sh
+Binary classification: ./easy_classification_training.sh
+MNIST classification: ./MNIST_experiment_training.sh
+
 
 Acknowledgements: This repository uses some files of the ASDL: Automatic Second-order Differentiation Library https://github.com/kazukiosawa/asdl
