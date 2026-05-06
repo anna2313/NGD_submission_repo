@@ -52,7 +52,7 @@ for beta2 in "${BETA2_VALS[@]}"; do
                     --beta1 0.9 \
                     --beta2 "$beta2" \
                     --batch_size "$bs" \
-                    --epochs 200 \
+                    --epochs 300 \
                     --lr 0.0 \
                     --theta 1.0 2.0 \
                     --sigma 0.5 \
