@@ -75,9 +75,9 @@ if __name__ == "__main__":
     # Clean and create necessary directories
     if args.regenerate_data:
         for rel_path in [
-            "linearregexperiment/results",
-            "linearregexperiment/logs",
-            "linearregexperiment/data",
+            "easy_classification/results",
+            "easy_classification/logs",
+            "easy_classification/data",
         ]:
             abs_path = PROJECT_ROOT / rel_path
             if abs_path.exists() and abs_path.is_dir():
@@ -85,8 +85,8 @@ if __name__ == "__main__":
             abs_path.mkdir(parents=True, exist_ok=True)
     else:
         for rel_path in [
-            "linearregexperiment/results",
-            "linearregexperiment/logs",
+            "easy_classification/results",
+            "easy_classification/logs",
         ]:
             abs_path = PROJECT_ROOT / rel_path
             if abs_path.exists() and abs_path.is_dir():
