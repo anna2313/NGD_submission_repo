@@ -591,12 +591,12 @@ if __name__ == "__main__":
     # Save results to JSON file
     if args.name_of_json_output_file == None:
         file_path = os.path.join(
-            "linearregexperiment/results",
+            "easy_classification/results",
             f"{args.optimizer_name}_{args.batch_size}_{args.beta2}.json",
         )
     else:
         file_path = os.path.join(
-            "linearregexperiment/results", args.name_of_json_output_file
+            "easy_classification/results", args.name_of_json_output_file
         )
     with open(file_path, "w") as f:
         new_dict = {}
