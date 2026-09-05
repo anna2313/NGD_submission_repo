@@ -33,7 +33,7 @@ def parse_args():
     parser.add_argument(
         "--input-dir",
         type=str,
-        default="linearregexperiment/results",
+        default="easy_classification/results",
         help="Directory containing per-run JSON files",
     )
     parser.add_argument(
