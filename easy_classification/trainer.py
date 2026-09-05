@@ -26,7 +26,8 @@ from model import NeuralNetwork
 from utils import compute_fisher_snapshot, to_json_number
 
 
-def setup_data(args, theta, sigma, where_to_save="linearregexperiment/data"):
+
+def setup_data(args, theta, sigma, where_to_save="easy_classification/data"):
     """Generate synthetic data and create data loaders.
 
     Args:
@@ -568,7 +569,7 @@ def main(args):
         model_file_name = (
             f"{args.optimizer_name}_{args.batch_size}_{args.beta2}_model.pt"
         )
-        model_path = Path("linearregexperiment/") / model_file_name
+        model_path = Path("easy_classification/models/") / model_file_name
         model_path.parent.mkdir(parents=True, exist_ok=True)
         torch.save(model.state_dict(), model_path)
         print(f"Saved model parameters to {model_path}")
