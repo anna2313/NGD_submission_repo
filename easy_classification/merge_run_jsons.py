@@ -23,7 +23,7 @@ def parse_args():
     parser.add_argument(
         "--input-dir",
         type=str,
-        default="linearregexperiment/results",
+        default="easy_classification/results",
         help="Directory containing per-run JSON files",
     )
     parser.add_argument(
@@ -36,7 +36,7 @@ def parse_args():
         "--output",
         type=str,
         default=None,
-        help="Output summary JSON path (default: linearregexperiment/results/results_<optimizer>.json)",
+        help="Output summary JSON path (default: easy_classification/results/results_<optimizer>.json)",
     )
     parser.add_argument(
         "--drop_bad_runs",
