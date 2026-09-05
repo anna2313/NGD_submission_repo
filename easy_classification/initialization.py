@@ -47,7 +47,7 @@ def parser():
     parser.add_argument(
         "--where_to_save",
         type=str,
-        default="linearregexperiment/data",
+        default="easy_classification/data",
         help="Directory to save the generated data",
     )
     parser.add_argument(
