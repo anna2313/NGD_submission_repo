@@ -132,6 +132,10 @@ def add_train_options(parser, main=False, no_boundaries=False, pretrain=False, c
         iter_epochs.add_argument('--iters', type=int, metavar='N', help='# iterations (replaces "--epochs")')
         train_params.add_argument('--batch', type=int, help="mini batch size")
     train_params.add_argument('--lr', type=float, help="learning rate")
+    if main:
+        train_params.add_argument('--valid-size', type=float, default=0., metavar="FRAC",
+                                  help="fraction of each class's training data to hold out as validation-set"
+                                       " (0 = no validation-set); the same samples are held out whatever '--seed' is")
     if not pretrain:
         train_params.add_argument('--optimizer', type=str, default='adam',
                                   choices=['adam', 'sgd'] if no_boundaries else ['adam', 'adam_reset', 'sgd'])

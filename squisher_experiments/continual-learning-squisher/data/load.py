@@ -153,3 +153,44 @@ def get_context_set(name, scenario, contexts, data_dir="./datasets", only_config
 
     # Return tuple of train- and test-dataset, config-dictionary and number of classes per context
     return ((train_datasets, test_datasets), config)
+
+#----------------------------------------------------------------------------------------------------------#
+
+def split_off_validation(train_datasets, valid_size, split_seed=0):
+    '''Hold out a fixed fraction of the training data of each class to serve as validation-set.
+
+    Which samples are held out is drawn from the original training set under [split_seed] only, before any of the
+    seed-dependent shuffling of classes over contexts, so every run holds out the same samples whatever its own
+    seed is. Each context's training set is then simply narrowed to the samples it keeps, and its validation set
+    to the samples it holds out; the datasets and their transforms are otherwise left alone, so every sample
+    keeps exactly the label it would have had without the split.
+
+    [valid_size]   <float> in [0, 1); fraction of each class to hold out (0 = no validation-set)
+
+    Returns (train_datasets, valid_datasets), with [valid_datasets]=None if [valid_size]==0.'''
+
+    if not valid_size:
+        return train_datasets, None
+
+    # -select, per class, which samples of the original training set are held out (independent of the run's seed)
+    targets = np.asarray(train_datasets[0].dataset.targets)
+    rng = np.random.RandomState(split_seed)
+    valid_indeces = set()
+    for label in np.unique(targets):
+        of_this_class = np.where(targets == label)[0]
+        n_held_out = int(round(valid_size * len(of_this_class)))
+        valid_indeces.update(rng.permutation(of_this_class)[:n_held_out].tolist())
+
+    # -narrow each training set to the samples it keeps, and pair it with the samples it holds out
+    new_train_datasets = []
+    valid_datasets = []
+    for dataset in train_datasets:
+        kept = [index for index in dataset.sub_indeces if index not in valid_indeces]
+        held = [index for index in dataset.sub_indeces if index in valid_indeces]
+        train_part = copy.copy(dataset)   #-> shallow copy: only which samples are selected should differ
+        train_part.sub_indeces = kept
+        valid_part = copy.copy(dataset)
+        valid_part.sub_indeces = held
+        new_train_datasets.append(train_part)
+        valid_datasets.append(valid_part)
+    return new_train_datasets, valid_datasets

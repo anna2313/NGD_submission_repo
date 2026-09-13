@@ -90,8 +90,10 @@ def get_param_stamp(args, model_name, verbose=True, replay_model_name=None, feat
         pre = ""
     freeze_conv = (checkattr(args, "freeze_convE") and hasattr(args, 'depth') and args.depth>0)
     freeze = "-fCvE" if (freeze_conv and (feature_extractor_name is None)) else ""
-    train_stamp = "i{num}-lr{lr}-b{bsz}{pre}{freeze}-{optim}{mom}{neg}{recon}".format(
-        num=args.iters, lr=args.lr, bsz=args.batch, pre=pre, freeze=freeze, optim=args.optimizer, mom="-m{}".format(
+    train_stamp = "i{num}-lr{lr}-b{bsz}{valid}{pre}{freeze}-{optim}{mom}{neg}{recon}".format(
+        num=args.iters, lr=args.lr, bsz=args.batch,
+        valid="-valid{}".format(args.valid_size) if getattr(args, 'valid_size', 0.) else "",
+        pre=pre, freeze=freeze, optim=args.optimizer, mom="-m{}".format(
             args.momentum
         ) if args.optimizer=='sgd' and hasattr(args, 'momentum') and args.momentum>0 else "",
         neg="-{}".format(args.neg_samples) if (

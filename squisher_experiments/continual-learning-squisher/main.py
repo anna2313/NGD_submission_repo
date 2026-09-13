@@ -7,7 +7,7 @@ from torch import optim
 # -custom-written libraries
 import utils
 from utils import checkattr
-from data.load import get_context_set
+from data.load import get_context_set, split_off_validation
 from models import define_models as define
 from models.cl.continual_learner import ContinualLearner
 from models.cl.memory_buffer import MemoryBuffer
@@ -98,6 +98,9 @@ def run(args, verbose=False):
     # The experiments in this script follow the academic continual learning setting,
     # the above lines of code therefore load both the 'context set' and the 'data stream'
 
+    # If requested, hold out part of the training data of each class to serve as validation-set
+    train_datasets, valid_datasets = split_off_validation(train_datasets, valid_size=args.valid_size)
+
     #-------------------------------------------------------------------------------------------------#
 
     #-----------------------------#
@@ -141,6 +144,9 @@ def run(args, verbose=False):
                                           message='<TRAINSET>')
         test_datasets = utils.preprocess(feature_extractor, test_datasets, config, batch=args.batch,
                                          message='<TESTSET> ')
+        if valid_datasets is not None:
+            valid_datasets = utils.preprocess(feature_extractor, valid_datasets, config, batch=args.batch,
+                                              message='<VALIDSET>')
 
     #-------------------------------------------------------------------------------------------------#
 
@@ -470,19 +476,24 @@ def run(args, verbose=False):
     if checkattr(args, 'gen_classifier'):
         model.S = args.eval_s
 
+    def context_accs(datasets):
+        '''Accuracy of the final model on each context of [datasets].'''
+        accs = []
+        for i in range(args.contexts):
+            acc = evaluate.test_acc(
+                model, datasets[i], verbose=False, test_size=None, context_id=i, allowed_classes=list(
+                    range(config['classes_per_context']*i, config['classes_per_context']*(i+1))
+                ) if (args.scenario=="task" and not checkattr(args, 'singlehead')) else None,
+            )
+            if verbose:
+                print(" - Context {}: {:.4f}".format(i + 1, acc))
+            accs.append(acc)
+        return accs
+
     # Evaluate accuracy of final model on full test-set
     if verbose:
         print("\n Accuracy of final model on test-set:")
-    accs = []
-    for i in range(args.contexts):
-        acc = evaluate.test_acc(
-            model, test_datasets[i], verbose=False, test_size=None, context_id=i, allowed_classes=list(
-                range(config['classes_per_context']*i, config['classes_per_context']*(i+1))
-            ) if (args.scenario=="task" and not checkattr(args, 'singlehead')) else None,
-        )
-        if verbose:
-            print(" - Context {}: {:.4f}".format(i + 1, acc))
-        accs.append(acc)
+    accs = context_accs(test_datasets)
     average_accs = sum(accs) / args.contexts
     if verbose:
         print('=> average accuracy over all {} contexts: {:.4f}\n\n'.format(args.contexts, average_accs))
@@ -497,6 +508,23 @@ def run(args, verbose=False):
         file_name = "{}/dict-{}--n{}{}".format(args.r_dir, param_stamp, "All" if args.acc_n is None else args.acc_n,
                                                "--S{}".format(args.eval_s) if checkattr(args, 'gen_classifier') else "")
         utils.save_object(plotting_dict, file_name)
+
+    # Evaluate accuracy of final model on the validation-set (if training data was held out for one)
+    average_valid_accs = None
+    if valid_datasets is not None:
+        if verbose:
+            print("\n Accuracy of final model on validation-set:")
+        valid_accs = context_accs(valid_datasets)
+        average_valid_accs = sum(valid_accs) / args.contexts
+        if verbose:
+            print('=> average accuracy over all {} contexts: {:.4f}\n\n'.format(args.contexts, average_valid_accs))
+        # -write out to text file
+        file_name = "{}/acc-valid-{}{}.txt".format(
+            args.r_dir, param_stamp, "--S{}".format(args.eval_s) if checkattr(args, 'gen_classifier') else ""
+        )
+        output_file = open(file_name, 'w')
+        output_file.write('{}\n'.format(average_valid_accs))
+        output_file.close()
 
     #-------------------------------------------------------------------------------------------------#
 
@@ -542,6 +570,8 @@ def run(args, verbose=False):
         # -print name of generated plot on screen
         if verbose:
             print("\nGenerated plot: {}\n".format(plot_name))
+
+    return average_accs, average_valid_accs
 
 
 
