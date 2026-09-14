@@ -18,12 +18,10 @@
 set -euo pipefail
 
 : "${CHECKOUT_DIR:?Set CHECKOUT_DIR to the patched external checkout}"
-PYTHON="${PYTHON:-${CHECKOUT_DIR}/.venv/bin/python}"
 
-if [[ ! -x "${PYTHON}" ]]; then
-  printf 'Python executable not found: %s\n' "${PYTHON}" >&2
-  exit 2
-fi
+source "$(conda info --base)/etc/profile.d/conda.sh"
+conda activate ngd
+export LD_LIBRARY_PATH=$CONDA_PREFIX/lib:${LD_LIBRARY_PATH:-}
 
 cd "${CHECKOUT_DIR}"
 
@@ -56,7 +54,7 @@ echo "Task ${SLURM_ARRAY_TASK_ID} handling combo indices ${START}-${END} of ${TO
 
 for i in $(seq "${START}" "${END}"); do
   echo "-> --stage transfer --combo-index ${i}"
-  "${PYTHON}" squisher_experiments/run_grid_valid.py --stage transfer --combo-index "${i}"
+  python squisher_experiments/run_grid_valid.py --stage transfer --combo-index "${i}"
 done
 
 echo "Task ${SLURM_ARRAY_TASK_ID} finished."

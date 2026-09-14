@@ -11,16 +11,10 @@
 set -euo pipefail
 
 : "${CHECKOUT_DIR:?Set CHECKOUT_DIR to the patched external checkout}"
-PYTHON="${PYTHON:-${CHECKOUT_DIR}/.venv/bin/python}"
 
-if [[ ! -x "${PYTHON}" ]]; then
-  printf 'Python executable not found: %s\n' "${PYTHON}" >&2
-  exit 2
-fi
-if [[ ! -f "${CHECKOUT_DIR}/squisher_experiments/run_grid.py" ]]; then
-  printf 'Patched Squisher driver not found under %s\n' "${CHECKOUT_DIR}" >&2
-  exit 2
-fi
+source "$(conda info --base)/etc/profile.d/conda.sh"
+conda activate ngd
+export LD_LIBRARY_PATH=$CONDA_PREFIX/lib:${LD_LIBRARY_PATH:-}
 
 cd "${CHECKOUT_DIR}"
-exec "${PYTHON}" squisher_experiments/run_grid.py
+exec python squisher_experiments/run_grid.py
