@@ -19,13 +19,29 @@ reason to shrink the training set -- and are scored, as before, on the untouched
 test set. That test-set number is now a genuinely unbiased result, since it played
 no role in choosing lambda.
 
-Resumable: a run whose log already contains the accuracy line(s) it needs is
-skipped. Uses a NEW log directory (logs_valid_tuned/, not the original grid's
+Two ways to run this:
+
+1. Sequentially, on one machine (e.g. for the one-cell smoke test, or a full local
+   run): `python run_grid_valid.py`. Resumable -- a run whose log already contains
+   the accuracy line(s) it needs is skipped.
+
+2. As a cluster array job, two stages, one combo per array-task-slot:
+   - Stage "tune":     `python run_grid_valid.py --stage tune --combo-index N`
+                        (N in 0..112, the 9 "none" + 105 "tune" combos)
+   - (in between)       `python select_lambdas.py` -- reads the completed tune-phase
+                        logs and writes best_lambdas.json (needs ALL of stage
+                        "tune" finished first)
+   - Stage "transfer": `python run_grid_valid.py --stage transfer --combo-index N`
+                        (N in 0..29, needs best_lambdas.json to exist)
+   See run_grid_valid_tune.sbatch / select_lambdas.sbatch / run_grid_valid_transfer.sbatch.
+
+Uses a dedicated log directory (logs_valid_tuned/, not the original grid's
 logs_equal_examples_v2/) on purpose: old tune-phase logs never used --valid-size
 and only ever contain ONE accuracy line, so they must not be mistaken for
 completed validation-based tuning runs.
 """
 
+import argparse
 import json
 import re
 import subprocess
@@ -34,6 +50,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 LOG_DIR = Path(__file__).resolve().parent / "logs_valid_tuned"
+BEST_LAMBDAS_PATH = LOG_DIR / "best_lambdas.json"
 
 SOURCES = [
     "empirical",
@@ -128,21 +145,47 @@ def run_one(source: str | None, batch: int, lam: float | None, seed: int,
     return test_acc, valid_acc
 
 
-def main() -> None:
-    LOG_DIR.mkdir(exist_ok=True)
+# --------------------------------------------------------------------------------- #
+# Combo lists -- used both by the sequential main() below and by the cluster-array
+# CLI mode (--stage / --combo-index), so the two never drift out of sync.
+# --------------------------------------------------------------------------------- #
 
-    print("== phase: none (no-regularization reference; full training data, no validation split) ==")
+def build_none_tune_combos() -> list[dict]:
+    """The 9 'none' runs + 105 'tune' runs (114 total) -- all independent of each
+    other, none of them need best_lambdas.json, so these are safe to fan out
+    across an array job in any order."""
+    combos = []
     for batch in [TUNE_BATCH, *TRANSFER_BATCHES]:
         for seed in SEEDS:
-            run_one(None, batch, None, seed, tuning=False)
+            combos.append(dict(source=None, batch=batch, lam=None, seed=seed, tuning=False))
+    for source in SOURCES:
+        for lam in LAMBDA_GRID:
+            for seed in SEEDS:
+                combos.append(dict(source=source, batch=TUNE_BATCH, lam=lam, seed=seed, tuning=True))
+    return combos
 
-    print(f"== phase: tune (batch {TUNE_BATCH}, selecting lambda by VALIDATION accuracy) ==")
+
+def build_transfer_combos(best_lambdas: dict) -> list[dict]:
+    """The (up to) 30 'transfer' runs. Requires best_lambdas.json to already
+    exist (i.e. the 'tune' stage above must be fully complete first)."""
+    combos = []
+    for source, lam in best_lambdas.items():
+        for batch in TRANSFER_BATCHES:
+            for seed in SEEDS:
+                combos.append(dict(source=source, batch=batch, lam=lam, seed=seed, tuning=False))
+    return combos
+
+
+def select_lambdas(verbose: bool = True) -> dict:
+    """Reads the completed 'tune'-phase logs and picks, per source, the lambda
+    with the highest mean VALIDATION accuracy across seeds. Writes and returns
+    best_lambdas.json. Safe to re-run; only reads logs, runs nothing."""
     tuning_scores: dict[str, dict[float, list[float]]] = {source: {} for source in SOURCES}
     for source in SOURCES:
         for lam in LAMBDA_GRID:
             valid_accs = []
             for seed in SEEDS:
-                _test_acc, valid_acc = run_one(source, TUNE_BATCH, lam, seed, tuning=True)
+                _test_acc, valid_acc = read_accuracies(LOG_DIR / f"{run_key(source, TUNE_BATCH, lam, seed, True)}.log")
                 if valid_acc is not None:
                     valid_accs.append(valid_acc)
             if valid_accs:
@@ -151,7 +194,8 @@ def main() -> None:
     best_lambdas = {}
     for source in SOURCES:
         if not tuning_scores[source]:
-            print(f"[warn] no completed tuning runs for {source}; skipping transfer")
+            if verbose:
+                print(f"[warn] no completed tuning runs for {source}; skipping transfer")
             continue
         best_lam = max(
             tuning_scores[source],
@@ -159,18 +203,63 @@ def main() -> None:
         )
         mean_valid_acc = sum(tuning_scores[source][best_lam]) / len(tuning_scores[source][best_lam])
         best_lambdas[source] = best_lam
-        print(f"[select] {source}: lambda={best_lam:.0e} (mean VALIDATION acc {mean_valid_acc:.4f})")
-    with open(LOG_DIR / "best_lambdas.json", "w") as handle:
+        if verbose:
+            print(f"[select] {source}: lambda={best_lam:.0e} (mean VALIDATION acc {mean_valid_acc:.4f})")
+    LOG_DIR.mkdir(exist_ok=True)
+    with open(BEST_LAMBDAS_PATH, "w") as handle:
         json.dump(best_lambdas, handle, indent=2)
+    return best_lambdas
+
+
+def main() -> None:
+    LOG_DIR.mkdir(exist_ok=True)
+
+    print("== phase: none (no-regularization reference; full training data, no validation split) ==")
+    print(f"== phase: tune (batch {TUNE_BATCH}, selecting lambda by VALIDATION accuracy) ==")
+    for combo in build_none_tune_combos():
+        run_one(combo["source"], combo["batch"], combo["lam"], combo["seed"], tuning=combo["tuning"])
+
+    best_lambdas = select_lambdas()
 
     print("== phase: transfer (fixed lambda across batch sizes; scored on held-out test set) ==")
-    for source, lam in best_lambdas.items():
-        for batch in TRANSFER_BATCHES:
-            for seed in SEEDS:
-                run_one(source, batch, lam, seed, tuning=False)
+    for combo in build_transfer_combos(best_lambdas):
+        run_one(combo["source"], combo["batch"], combo["lam"], combo["seed"], tuning=combo["tuning"])
 
     print("all phases complete; parse with squisher_experiments/parse_results_valid.py")
 
 
+def _cli_main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--stage", choices=["tune", "transfer"],
+                       help="run exactly one combo from the given stage (for cluster array jobs)")
+    parser.add_argument("--combo-index", type=int,
+                       help="which combo to run (0-based) within --stage's list")
+    args = parser.parse_args()
+
+    if args.stage is None:
+        main()
+        return
+
+    if args.combo_index is None:
+        parser.error("--combo-index is required when --stage is given")
+
+    if args.stage == "tune":
+        combos = build_none_tune_combos()
+    else:
+        if not BEST_LAMBDAS_PATH.exists():
+            parser.error(f"{BEST_LAMBDAS_PATH} not found -- run the 'tune' stage and select_lambdas.py first")
+        with open(BEST_LAMBDAS_PATH) as handle:
+            best_lambdas = json.load(handle)
+        combos = build_transfer_combos(best_lambdas)
+
+    if not (0 <= args.combo_index < len(combos)):
+        parser.error(f"--combo-index must be in [0, {len(combos) - 1}] for --stage {args.stage} "
+                     f"({len(combos)} combos)")
+
+    combo = combos[args.combo_index]
+    LOG_DIR.mkdir(exist_ok=True)
+    run_one(combo["source"], combo["batch"], combo["lam"], combo["seed"], tuning=combo["tuning"])
+
+
 if __name__ == "__main__":
-    main()
+    _cli_main()
