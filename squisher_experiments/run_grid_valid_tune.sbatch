@@ -13,7 +13,7 @@
                                   # contexts = 10,000 iterations), 2 runs per task. Correct after the
                                   # first batch completes, same practice as this project's other array jobs.
 #SBATCH --array=0-56
-#SBATCH --output=logs/squisher-tune-%A_%a.out
+#SBATCH --output=squisher_experiments/logs/squisher-tune-%A_%a.out
 
 set -euo pipefail
 

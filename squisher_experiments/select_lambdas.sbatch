@@ -6,7 +6,7 @@
 #SBATCH --cpus-per-task=1
 #SBATCH --mem=1G
 #SBATCH --time=00:10:00
-#SBATCH --output=logs/squisher-select-%j.out
+#SBATCH --output=squisher_experiments/logs/squisher-select-%j.out
 
 set -euo pipefail
 

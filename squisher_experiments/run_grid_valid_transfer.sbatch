@@ -13,7 +13,7 @@
                                   # (10,000 iterations), so this stage gets a more generous budget even
                                   # though it has fewer total combos.
 #SBATCH --array=0-14
-#SBATCH --output=logs/squisher-transfer-%A_%a.out
+#SBATCH --output=squisher_experiments/logs/squisher-transfer-%A_%a.out
 
 set -euo pipefail
 
