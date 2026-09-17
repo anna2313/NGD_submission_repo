@@ -9,13 +9,13 @@
                                   # similar footprint to the MNIST experiments elsewhere in this project.
                                   # Check seff/sacct after the first handful of tasks land and correct
                                   # before resubmitting anything that fails.
-#SBATCH --time=01:00:00          # ESTIMATE, bumped 2026-09-14 -- this array now also includes "none"
-                                  # baseline runs at batch=16 (16,000 iters/context x 5 = 80,000 total,
-                                  # the heaviest single combo in the whole experiment now that
-                                  # TRANSFER_BATCHES includes 16), not just the batch=128 tune runs
-                                  # (10,000 iterations) this estimate was originally sized for. Correct
-                                  # after the first batch completes, same practice as this project's
-                                  # other array jobs.
+#SBATCH --time=06:00:00          # ESTIMATE, bumped 2026-09-14 -- batch=4096 "none" runs (under the new
+                                  # MIN_ITERS floor) TIMED OUT at the previous 01:00:00 limit (tasks 14/15).
+                                  # A single batch=4096 combo measured at ~63 min on one node but only
+                                  # ~16 min (half of a 31:48 two-combo task) on another -- real node-speed
+                                  # variance on this cluster, not just batch-size cost. Sized with margin
+                                  # for two slow-node batch=4096 combos back to back in one task. No
+                                  # memory issue observed (still well under 4G).
 #SBATCH --array=0-83
 #SBATCH --output=squisher_experiments/logs/squisher-tune-%A_%a.out
 
