@@ -27,7 +27,7 @@ Two ways to run this:
 
 2. As a cluster array job, two stages, one combo per array-task-slot:
    - Stage "tune":     `python run_grid_valid.py --stage tune --combo-index N`
-                        (N in 0..157, the "none" + "tune" combos -- see
+                        (N in 0..167, the "none" + "tune" combos -- see
                         build_none_tune_combos() for the exact count, which
                         depends on TRANSFER_BATCHES/TUNE_SEEDS/OTHER_SEEDS/
                         LAMBDA_GRID above)
@@ -35,7 +35,7 @@ Two ways to run this:
                         logs and writes best_lambdas.json (needs ALL of stage
                         "tune" finished first)
    - Stage "transfer": `python run_grid_valid.py --stage transfer --combo-index N`
-                        (N in 0..99, needs best_lambdas.json to exist)
+                        (N in 0..149, needs best_lambdas.json to exist)
    See run_grid_valid_tune.sbatch / select_lambdas.sbatch / run_grid_valid_transfer.sbatch.
 
 Uses a dedicated log directory (logs_valid_tuned/, not the original grid's
