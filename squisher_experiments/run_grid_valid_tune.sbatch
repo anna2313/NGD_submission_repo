@@ -16,7 +16,7 @@
                                   # (10,000 iterations) this estimate was originally sized for. Correct
                                   # after the first batch completes, same practice as this project's
                                   # other array jobs.
-#SBATCH --array=0-78
+#SBATCH --array=0-83
 #SBATCH --output=squisher_experiments/logs/squisher-tune-%A_%a.out
 
 set -euo pipefail
@@ -46,7 +46,7 @@ cd "${CHECKOUT_DIR}"
 # wait for `squeue` to show this array fully finished before submitting.
 
 RUNS_PER_TASK=2
-TOTAL_COMBOS=158   # must match len(run_grid_valid.build_none_tune_combos())
+TOTAL_COMBOS=168   # must match len(run_grid_valid.build_none_tune_combos())
 
 START=$(( SLURM_ARRAY_TASK_ID * RUNS_PER_TASK ))
 END=$(( START + RUNS_PER_TASK - 1 ))
