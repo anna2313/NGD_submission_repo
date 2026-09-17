@@ -9,10 +9,14 @@
                                   # similar footprint to the MNIST experiments elsewhere in this project.
                                   # Check seff/sacct after the first handful of tasks land and correct
                                   # before resubmitting anything that fails.
-#SBATCH --time=00:30:00          # ESTIMATE -- these are all batch=128 runs (2,000 iters/context x 5
-                                  # contexts = 10,000 iterations), 2 runs per task. Correct after the
-                                  # first batch completes, same practice as this project's other array jobs.
-#SBATCH --array=0-56
+#SBATCH --time=01:00:00          # ESTIMATE, bumped 2026-09-14 -- this array now also includes "none"
+                                  # baseline runs at batch=16 (16,000 iters/context x 5 = 80,000 total,
+                                  # the heaviest single combo in the whole experiment now that
+                                  # TRANSFER_BATCHES includes 16), not just the batch=128 tune runs
+                                  # (10,000 iterations) this estimate was originally sized for. Correct
+                                  # after the first batch completes, same practice as this project's
+                                  # other array jobs.
+#SBATCH --array=0-78
 #SBATCH --output=squisher_experiments/logs/squisher-tune-%A_%a.out
 
 set -euo pipefail
@@ -25,22 +29,24 @@ export LD_LIBRARY_PATH=$CONDA_PREFIX/lib:${LD_LIBRARY_PATH:-}
 
 cd "${CHECKOUT_DIR}"
 
-# Stage 1 of 3: the 9 "none"-baseline runs + 105 "tune" runs (114 combos total),
-# as defined once in run_grid_valid.build_none_tune_combos() -- this script never
-# needs to know the actual sources/lambdas/seeds itself, only which combo
-# INDICES belong to this task. 2 combos per task -> 57 tasks (0-56); 114 is
-# evenly divisible by 2 so no task ever runs fewer than 2.
+# Stage 1 of 3: the "none"-baseline runs (batch=128 at 3 seeds, plus each of
+# TRANSFER_BATCHES=[16,32,512,1024] at 5 seeds) + "tune" runs (5 sources x
+# 9-value LAMBDA_GRID x 3 seeds) -- 158 combos total, as defined once in
+# run_grid_valid.build_none_tune_combos() -- this script never needs to know
+# the actual sources/lambdas/seeds itself, only which combo INDICES belong to
+# this task. 2 combos per task -> 79 tasks (0-78); 158 is evenly divisible by
+# 2 so no task ever runs fewer than 2.
 #
 # Neither "none" nor "tune" needs best_lambdas.json, so this whole array is
 # independent and can run in any order.
 #
-# Once ALL 57 tasks finish: submit select_lambdas.sbatch, then (once THAT's
+# Once ALL 79 tasks finish: submit select_lambdas.sbatch, then (once THAT's
 # done) run_grid_valid_transfer.sbatch. Chain with
 # `sbatch --dependency=afterok:<this_job_id> select_lambdas.sbatch`, or just
 # wait for `squeue` to show this array fully finished before submitting.
 
 RUNS_PER_TASK=2
-TOTAL_COMBOS=114   # must match len(run_grid_valid.build_none_tune_combos())
+TOTAL_COMBOS=158   # must match len(run_grid_valid.build_none_tune_combos())
 
 START=$(( SLURM_ARRAY_TASK_ID * RUNS_PER_TASK ))
 END=$(( START + RUNS_PER_TASK - 1 ))

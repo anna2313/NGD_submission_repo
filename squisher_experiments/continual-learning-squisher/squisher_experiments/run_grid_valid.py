@@ -27,12 +27,15 @@ Two ways to run this:
 
 2. As a cluster array job, two stages, one combo per array-task-slot:
    - Stage "tune":     `python run_grid_valid.py --stage tune --combo-index N`
-                        (N in 0..112, the 9 "none" + 105 "tune" combos)
+                        (N in 0..157, the "none" + "tune" combos -- see
+                        build_none_tune_combos() for the exact count, which
+                        depends on TRANSFER_BATCHES/TUNE_SEEDS/OTHER_SEEDS/
+                        LAMBDA_GRID above)
    - (in between)       `python select_lambdas.py` -- reads the completed tune-phase
                         logs and writes best_lambdas.json (needs ALL of stage
                         "tune" finished first)
    - Stage "transfer": `python run_grid_valid.py --stage transfer --combo-index N`
-                        (N in 0..29, needs best_lambdas.json to exist)
+                        (N in 0..99, needs best_lambdas.json to exist)
    See run_grid_valid_tune.sbatch / select_lambdas.sbatch / run_grid_valid_transfer.sbatch.
 
 Uses a dedicated log directory (logs_valid_tuned/, not the original grid's
@@ -59,13 +62,19 @@ SOURCES = [
     "squisher_nscaled",
     "squisher_corrected",
 ]
-SEEDS = [1, 2, 3]
 TUNE_BATCH = 128
-TRANSFER_BATCHES = [32, 512]
-LAMBDA_GRID = [1e1, 1e2, 1e3, 1e4, 1e5, 1e6, 1e7]
+TRANSFER_BATCHES = [16, 32, 512, 1024]
+TUNE_SEEDS = [1, 2, 3]            # unchanged -- keeps tune-phase (batch=128, all lambdas) cost stable
+OTHER_SEEDS = [1, 2, 3, 4, 5]     # increased from 3 -- the "none" baseline at non-128 batches, and
+                                   # every "transfer" run, since these feed the final
+                                   # batch-size-transfer comparison and benefit most from lower variance
+LAMBDA_GRID = [1e0, 1e1, 1e2, 1e3, 1e4, 1e5, 1e6, 1e7, 1e8]  # extended one order of magnitude each
+                                   # way (2026-09-14): the original [1e1..1e7] grid had two sources
+                                   # (empirical, nscaled) select a boundary value, meaning the true
+                                   # optimum likely lay outside the tested range
 EXAMPLES_PER_CONTEXT = 256_000
 LR = 0.001
-VALID_SIZE = 0.1  # fraction of each class's training data held out -- tune phase only
+VALID_SIZE = 0.25  # fraction of each class's training data held out -- tune phase only (was 0.1)
 
 ACC_PATTERN = re.compile(r"average accuracy over all \d+ contexts: ([0-9.]+)")
 
@@ -151,27 +160,32 @@ def run_one(source: str | None, batch: int, lam: float | None, seed: int,
 # --------------------------------------------------------------------------------- #
 
 def build_none_tune_combos() -> list[dict]:
-    """The 9 'none' runs + 105 'tune' runs (114 total) -- all independent of each
-    other, none of them need best_lambdas.json, so these are safe to fan out
-    across an array job in any order."""
+    """The 'none' runs (batch=128 at TUNE_SEEDS + each TRANSFER_BATCHES at
+    OTHER_SEEDS) + 'tune' runs (5 sources x LAMBDA_GRID x TUNE_SEEDS) -- all
+    independent of each other, none of them need best_lambdas.json, so these
+    are safe to fan out across an array job in any order."""
     combos = []
-    for batch in [TUNE_BATCH, *TRANSFER_BATCHES]:
-        for seed in SEEDS:
+    for seed in TUNE_SEEDS:
+        combos.append(dict(source=None, batch=TUNE_BATCH, lam=None, seed=seed, tuning=False))
+    for batch in TRANSFER_BATCHES:
+        for seed in OTHER_SEEDS:
             combos.append(dict(source=None, batch=batch, lam=None, seed=seed, tuning=False))
     for source in SOURCES:
         for lam in LAMBDA_GRID:
-            for seed in SEEDS:
+            for seed in TUNE_SEEDS:
                 combos.append(dict(source=source, batch=TUNE_BATCH, lam=lam, seed=seed, tuning=True))
     return combos
 
 
 def build_transfer_combos(best_lambdas: dict) -> list[dict]:
-    """The (up to) 30 'transfer' runs. Requires best_lambdas.json to already
-    exist (i.e. the 'tune' stage above must be fully complete first)."""
+    """The 'transfer' runs: each selected source/lambda re-run at every
+    TRANSFER_BATCHES value, OTHER_SEEDS seeds each. Requires
+    best_lambdas.json to already exist (i.e. the 'tune' stage above must be
+    fully complete first)."""
     combos = []
     for source, lam in best_lambdas.items():
         for batch in TRANSFER_BATCHES:
-            for seed in SEEDS:
+            for seed in OTHER_SEEDS:
                 combos.append(dict(source=source, batch=batch, lam=lam, seed=seed, tuning=False))
     return combos
 
@@ -184,7 +198,7 @@ def select_lambdas(verbose: bool = True) -> dict:
     for source in SOURCES:
         for lam in LAMBDA_GRID:
             valid_accs = []
-            for seed in SEEDS:
+            for seed in TUNE_SEEDS:
                 _test_acc, valid_acc = read_accuracies(LOG_DIR / f"{run_key(source, TUNE_BATCH, lam, seed, True)}.log")
                 if valid_acc is not None:
                     valid_accs.append(valid_acc)
