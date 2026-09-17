@@ -7,10 +7,11 @@
 #SBATCH --cpus-per-task=1
 #SBATCH --mem=4G                 # ESTIMATE, not yet measured -- same tiny MLP as the tune stage.
                                   # Correct after the first batch of this array completes.
-#SBATCH --time=02:00:00          # ESTIMATE, bumped 2026-09-14 -- batch=16 (16,000 iters/context x 5 =
-                                  # 80,000 iterations) is now the heaviest single combo in the whole
-                                  # experiment, well above the old batch=32 (40,000 iterations) this
-                                  # estimate was originally sized for.
+#SBATCH --time=06:00:00          # ESTIMATE, bumped 2026-09-14 -- batch=4096 transfer runs will hit the
+                                  # same node-speed variance seen in the tune stage (a single batch=4096
+                                  # combo measured up to ~63 min on a slow node, another completed in
+                                  # ~16 min on a different node). Matches the tune stage's bump for the
+                                  # same reason.
 #SBATCH --array=0-74
 #SBATCH --output=squisher_experiments/logs/squisher-transfer-%A_%a.out
 
