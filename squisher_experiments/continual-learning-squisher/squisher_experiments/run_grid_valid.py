@@ -63,7 +63,13 @@ SOURCES = [
     "squisher_corrected",
 ]
 TUNE_BATCH = 128
-TRANSFER_BATCHES = [16, 32, 512, 1024]
+TRANSFER_BATCHES = [16, 32, 512, 1024, 2048, 4096]
+MIN_ITERS = 2000  # floor on iterations/context (2026-09-14) -- with a fixed EXAMPLES_PER_CONTEXT budget,
+                   # large batches get too few iterations for the exp_avg_sq accumulator to burn in
+                   # against beta2=0.999's ~1,000-step horizon (e.g. batch=4096 would only get ~63
+                   # iterations otherwise). Matches batch=128's own iteration count, which is already
+                   # known to burn in adequately. Only raises iters (and therefore compute cost) for
+                   # batches where EXAMPLES_PER_CONTEXT/batch would otherwise fall short of this floor.
 TUNE_SEEDS = [1, 2, 3]            # unchanged -- keeps tune-phase (batch=128, all lambdas) cost stable
 OTHER_SEEDS = [1, 2, 3, 4, 5]     # increased from 3 -- the "none" baseline at non-128 batches, and
                                    # every "transfer" run, since these feed the final
@@ -87,7 +93,7 @@ def run_key(source: str | None, batch: int, lam: float | None, seed: int, tuning
 
 
 def build_command(source: str | None, batch: int, lam: float | None, seed: int, tuning: bool) -> list[str]:
-    iters = max(1, round(EXAMPLES_PER_CONTEXT / batch))
+    iters = max(round(EXAMPLES_PER_CONTEXT / batch), MIN_ITERS)
     command = [
         sys.executable, "main.py",
         "--experiment", "splitMNIST",
