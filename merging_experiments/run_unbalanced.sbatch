@@ -27,7 +27,7 @@ export LD_LIBRARY_PATH=$CONDA_PREFIX/lib:${LD_LIBRARY_PATH:-}
 # defaults are both relative paths resolved from there.
 cd "$(dirname "$(dirname "$(realpath "$0")")")"
 
-PLAN=merging_experiments/plans/equal_exposure_trend.json
+PLAN=merging_experiments/plans/unbalanced_shards.json
 
 if [[ ! -f "${PLAN}" ]]; then
   printf 'Plan not found: %s\nRun: python merging_experiments/write_sweep_plan.py --suite equal_exposure_trend\n' "${PLAN}" >&2
