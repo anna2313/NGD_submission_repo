@@ -9,11 +9,13 @@
                                   # tensorizes an entire 30k-example MNIST shard onto the device up
                                   # front (tensorize() in fisher_merging_demo.py), plus holds 11
                                   # importance dicts in memory. Check seff after the first tasks land.
-#SBATCH --time=02:00:00          # ESTIMATE, unmeasured. The script's own docstring claims "minutes"
-                                  # on CPU/MPS, but that predates the 256,000-example budget; the
-                                  # per-sample probe_fisher loop (512 sequential single-example
-                                  # backward passes per model) is the likely bottleneck. Correct after
-                                  # the first tasks complete.
+#SBATCH --time=00:30:00          # MEASURED (2026-09-14): completed tasks took ~3 min each, including
+                                  # the heaviest equal-exposure cell (batch_size_a=32 -> 8,000 steps for
+                                  # model A plus 2,000 for model B, plus two 512-sample sequential probe
+                                  # loops). 10x headroom. Was 02:00:00, a guess made without a smoke
+                                  # test. Note this cluster has real node-speed variance (established
+                                  # during Experiment 2's batch=4096 work), so keep margin rather than
+                                  # trimming to ~5 min.
 #SBATCH --array=0-8
 #SBATCH --output=merging_experiments/logs/merge-unbalanced-%A_%a.out
 
