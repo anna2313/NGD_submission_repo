@@ -289,7 +289,7 @@ def plot_batch_transfer(results_rows, out_path: Path):
         print("[skip] plot_batch_transfer: no results.csv data")
         return
 
-    transfer_rows = [r for r in results_rows if r["batch"] != 256 and r["tuned"] is False and r["source"] != "none"]
+    transfer_rows = [r for r in results_rows if r["batch"] != 256  and r["source"] != "none"]
     if not transfer_rows:
         print("[skip] plot_batch_transfer: no transfer-stage rows found")
         return
