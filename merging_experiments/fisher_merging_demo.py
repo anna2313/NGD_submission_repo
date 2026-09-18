@@ -75,7 +75,7 @@ def parse_args():
     )
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--device", default="cpu")
-    parser.add_argument("--data_dir", default="./data")
+    parser.add_argument("--data_dir", default="merging_experiments/data")
     parser.add_argument("--lenet_width", type=int, default=1)
     parser.add_argument("--merge_eps", type=float, default=1e-12)
     parser.add_argument("--output_dir", default="merging_experiments/results")
