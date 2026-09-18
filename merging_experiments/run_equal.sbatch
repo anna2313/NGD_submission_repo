@@ -25,7 +25,7 @@ export LD_LIBRARY_PATH=$CONDA_PREFIX/lib:${LD_LIBRARY_PATH:-}
 
 # Run from the repo root: fisher_merging_demo.py's --data_dir and --output_dir
 # defaults are both relative paths resolved from there.
-cd "$(dirname "$(dirname "$(realpath "$0")")")"
+cd "${SLURM_SUBMIT_DIR:?SLURM_SUBMIT_DIR not set -- submit this from the repo root}"
 
 PLAN=merging_experiments/plans/equal_exposure_trend.json
 

@@ -14,7 +14,7 @@ source "$(conda info --base)/etc/profile.d/conda.sh"
 conda activate ngd
 export LD_LIBRARY_PATH=$CONDA_PREFIX/lib:${LD_LIBRARY_PATH:-}
 
-cd "$(dirname "$(dirname "$(realpath "$0")")")"
+cd "${SLURM_SUBMIT_DIR:?SLURM_SUBMIT_DIR not set -- submit this from the repo root}"
 
 # --require-complete makes this fail if any expected result cell is missing,
 # which is what we want in a dependency chain: a partial aggregate is worse
