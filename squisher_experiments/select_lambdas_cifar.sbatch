@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 
 # Cluster resource names and limits are site-specific; inspect before use.
-#SBATCH --job-name=squisher-select-lambdas
+#SBATCH --job-name=squisher-cifar-select
 #SBATCH --partition=compute       # CPU-only: reads existing logs only, launches no training
 #SBATCH --cpus-per-task=1
 #SBATCH --mem=1G
 #SBATCH --time=00:10:00
-#SBATCH --output=squisher_experiments/logs/squisher-select-%j.out
+#SBATCH --output=squisher_experiments/logs/squisher-cifar-select-%j.out
 
 set -euo pipefail
 
