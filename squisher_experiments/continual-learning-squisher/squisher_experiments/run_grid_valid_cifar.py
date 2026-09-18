@@ -65,7 +65,7 @@ SOURCES = [
 TUNE_BATCH = 256
 EXPERIMENT = "CIFAR10"
 CONTEXTS = 5            # CIFAR10 default; 50,000 train / 5 = 10,000 per context
-TRANSFER_BATCHES = [64, 512, 1024]
+TRANSFER_BATCHES = [32, 64, 128, 512, 1024, 1536, 2048]
 MIN_ITERS = 2000  # floor on iterations/context (2026-09-14) -- with a fixed EXAMPLES_PER_CONTEXT budget,
                    # large batches get too few iterations for the exp_avg_sq accumulator to burn in
                    # against beta2=0.999's ~1,000-step horizon (e.g. batch=4096 would only get ~63
@@ -90,7 +90,7 @@ ACC_PATTERN = re.compile(r"average accuracy over all \d+ contexts: ([0-9.]+)")
 def run_key(source: str | None, batch: int, lam: float | None, seed: int, tuning: bool) -> str:
     tag = "_vs{:g}".format(VALID_SIZE)
     if source is None:
-        return f"none_b{batch}_s{seed}"
+        return f"none_b{batch}_s{seed}{tag}"
     return f"{source}_b{batch}_lam{lam:.0e}_s{seed}{tag}"
 
 
@@ -149,7 +149,7 @@ def run_one(source: str | None, batch: int, lam: float | None, seed: int,
     test_acc, valid_acc = read_accuracies(log_path)
     # -a tune-phase run needs BOTH numbers to count as done; none/transfer runs
     #  never produce a validation number, so the test number alone is enough there.
-    already_done = (test_acc is not None and valid_acc is not None) if tuning else (test_acc is not None)
+    already_done = test_acc is not None and valid_acc is not None
     if already_done:
         suffix = f" valid={valid_acc:.4f}" if tuning else ""
         print(f"[skip] {key}: test={test_acc:.4f}{suffix}")
