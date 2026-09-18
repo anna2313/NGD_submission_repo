@@ -260,6 +260,10 @@ def main():
         name: value * diag_b["second_moment_bias_correction"] / diag_b["correction_factor"]
         for name, value in fisher_b.items()
     }
+    nscaled_a = scale_importances(raw_a, args.batch_size_a)
+    nscaled_b = scale_importances(raw_b, args.batch_size_b)
+    nscaled_sum_a = scale_importances(nscaled_a, shard_size_a)
+    nscaled_sum_b = scale_importances(nscaled_b, shard_size_b)
     fisher_sum_a = scale_importances(fisher_a, shard_size_a)
     fisher_sum_b = scale_importances(fisher_b, shard_size_b)
     theory_raw_sum_a = scale_importances(theory_raw_a, shard_size_a)
@@ -273,10 +277,12 @@ def main():
         "probe_fisher": (fisher_a, fisher_b),
         "probe_theory_raw": (theory_raw_a, theory_raw_b),
         "squisher_raw": (raw_a, raw_b),
+        "squisher_nscaled": (nscaled_a, nscaled_b),
         "squisher_corrected": (corr_a, corr_b),
         "probe_fisher_sum": (fisher_sum_a, fisher_sum_b),
         "probe_theory_raw_sum": (theory_raw_sum_a, theory_raw_sum_b),
         "squisher_raw_sum": (raw_sum_a, raw_sum_b),
+        "squisher_nscaled_sum": (nscaled_sum_a, nscaled_sum_b),
         "squisher_corrected_sum": (corr_sum_a, corr_sum_b),
     }
 

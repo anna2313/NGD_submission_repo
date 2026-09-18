@@ -140,9 +140,11 @@ def write_markdown(path, suite, rows, expected, missing):
     schemes = [
         "probe_fisher",
         "squisher_raw",
+        "squisher_nscaled",
         "squisher_corrected",
         "probe_fisher_sum",
         "squisher_raw_sum",
+        "squisher_nscaled_sum",
         "squisher_corrected_sum",
     ]
     path.parent.mkdir(parents=True, exist_ok=True)
