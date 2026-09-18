@@ -27,7 +27,7 @@ matplotlib.use("Agg")  # no display on a cluster login/compute node
 import matplotlib.pyplot as plt
 import numpy as np
 
-DEFAULT_DIR = Path(__file__).resolve().parent / "logs_valid_tuned"
+DEFAULT_DIR = Path(__file__).resolve().parent / "logs_valid_tuned_cifar"
 
 KEY_PATTERN = re.compile(
     r"^(?P<source>none|empirical|squisher_\w+?)_b(?P<batch>\d+)(?:_lam(?P<lam>[0-9e+.-]+))?_s(?P<seed>\d+)"
