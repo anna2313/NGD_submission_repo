@@ -35,4 +35,4 @@ cd "${CHECKOUT_DIR}"
 # Writes logs_valid_tuned/best_lambdas.json, which the transfer stage reads next.
 # Safe to re-run.
 
-python python squisher_experiments/select_lambdas_cifar.py
+python squisher_experiments/select_lambdas_cifar.py
