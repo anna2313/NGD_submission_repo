@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Cluster resource names and limits are site-specific; inspect before use.
-#SBATCH --job-name=squisher-cifar-select
+#SBATCH --job-name=squisher-cifar-transfer
 #SBATCH --partition=gpu
 #SBATCH --gres=gpu:1
 #SBATCH --cpus-per-task=1
@@ -13,7 +13,7 @@
                                   # ~16 min on a different node). Matches the tune stage's bump for the
                                   # same reason.
 #SBATCH --array=0-37
-#SBATCH --output=squisher_experiments/logs/squisher-cifar-select-%j.out
+#SBATCH --output=squisher_experiments/logs/squisher-cifar-transfer-%A_%a.out
 
 set -euo pipefail
 
@@ -54,7 +54,7 @@ echo "Task ${SLURM_ARRAY_TASK_ID} handling combo indices ${START}-${END} of ${TO
 
 for i in $(seq "${START}" "${END}"); do
   echo "-> --stage transfer --combo-index ${i}"
-  python squisher_experiments/select_lambdas_cifar.py
+  python squisher_experiments/run_grid_valid_cifar.py --stage transfer --combo-index "${i}"
 done
 
 echo "Task ${SLURM_ARRAY_TASK_ID} finished."
