@@ -88,7 +88,7 @@ ACC_PATTERN = re.compile(r"average accuracy over all \d+ contexts: ([0-9.]+)")
 
 
 def run_key(source: str | None, batch: int, lam: float | None, seed: int, tuning: bool) -> str:
-    tag = "_vs{:g}".format(VALID_SIZE) if tuning else ""
+    tag = "_vs{:g}".format(VALID_SIZE)
     if source is None:
         return f"none_b{batch}_s{seed}"
     return f"{source}_b{batch}_lam{lam:.0e}_s{seed}{tag}"
@@ -108,9 +108,14 @@ def build_command(source: str | None, batch: int, lam: float | None, seed: int, 
         "--seed", str(seed),
         "--no-save",
     ]
-    if tuning:
-        # -only hold out a validation-set while lambda is actually being selected
-        command += ["--valid-size", str(VALID_SIZE)]
+    # Always hold out the validation split, including in the "none" and
+    # "transfer" phases (2026-09-18). Not for selection -- nothing is selected
+    # there -- but so that n, the per-context training size the correction
+    # factor m(n-1)/(n-m) depends on, is identical in every run. Otherwise
+    # lambda is chosen under n=7,500 and then applied under n=10,000, which
+    # changes the factor by ~4% at batch=1024 and ~9% at batch=2048, i.e.
+    # the batch-transfer comparison varies both m and n instead of m alone.
+    command += ["--valid-size", str(VALID_SIZE)]
     if source is not None:
         command += [
             "--ewc",
