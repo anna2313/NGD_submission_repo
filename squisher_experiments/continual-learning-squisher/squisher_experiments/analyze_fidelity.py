@@ -289,11 +289,11 @@ def plot_batch_transfer(results_rows, out_path: Path):
         print("[skip] plot_batch_transfer: no results.csv data")
         return
 
-    transfer_batches = {32, 512}
-    transfer_rows = [r for r in results_rows if r["batch"] in transfer_batches and r["source"] != "none"]
+    transfer_rows = [r for r in results_rows if r["batch"] != 128 and r["tuned"] is False and r["source"] != "none"]
     if not transfer_rows:
-        print("[skip] plot_batch_transfer: no transfer-stage rows found (batch 32/512)")
+        print("[skip] plot_batch_transfer: no transfer-stage rows found")
         return
+    transfer_batches = sorted({r["batch"] for r in transfer_rows})
 
     # The transferred lambda per source is whatever lambda actually has a
     # batch=32/512 row -- no need to read best_lambdas.json separately.
@@ -307,7 +307,7 @@ def plot_batch_transfer(results_rows, out_path: Path):
         none_by_batch[r["batch"]].append(r["test_accuracy"])
 
     fig, ax = plt.subplots(figsize=(7, 5))
-    batches = [32, 128, 512]
+    batches = sorted({128, *transfer_batches})
     for source, lam in selected_lambda.items():
         means, stds = [], []
         for batch in batches:
