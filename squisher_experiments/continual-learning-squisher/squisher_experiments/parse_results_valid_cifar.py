@@ -16,7 +16,7 @@ from collections import defaultdict
 from pathlib import Path
 from statistics import mean, stdev
 
-LOG_DIR = Path(__file__).resolve().parent / "logs_valid_tuned"
+LOG_DIR = Path(__file__).resolve().parent / "logs_valid_tuned_cifar"
 
 ACC_PATTERN = re.compile(r"average accuracy over all \d+ contexts: ([0-9.]+)")
 KEY_PATTERN = re.compile(
