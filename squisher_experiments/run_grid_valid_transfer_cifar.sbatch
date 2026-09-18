@@ -12,7 +12,7 @@
                                   # combo measured up to ~63 min on a slow node, another completed in
                                   # ~16 min on a different node). Matches the tune stage's bump for the
                                   # same reason.
-#SBATCH --array=0-87
+#SBATCH --array=0-199
 #SBATCH --output=squisher_experiments/logs/squisher-cifar-transfer-%A_%a.out
 
 set -euo pipefail
@@ -39,10 +39,10 @@ cd "${CHECKOUT_DIR}"
 # array indices below will fail with an out-of-range error from
 # run_grid_valid.py's own argument check.
 #
-# 2 combos per task -> 50 tasks (0-49), 100/2 exactly, no remainder.
+# 1 combo per task -> 200 tasks (0-199), 200/1 exactly, no remainder.
 
-RUNS_PER_TASK=2
-TOTAL_COMBOS=175   # must match len(run_grid_valid.build_transfer_combos(best_lambdas)) -- see note above
+RUNS_PER_TASK=1
+TOTAL_COMBOS=200  # must match len(run_grid_valid.build_transfer_combos(best_lambdas)) -- see note above
 
 START=$(( SLURM_ARRAY_TASK_ID * RUNS_PER_TASK ))
 END=$(( START + RUNS_PER_TASK - 1 ))
