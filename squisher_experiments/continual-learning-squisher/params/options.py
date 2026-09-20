@@ -237,11 +237,13 @@ def add_cl_options(parser, main=False, compare_all=False, compare_replay=False, 
             param_reg.add_argument("--importance-weighting", type=str, choices=['fisher', 'si', 'owm'])
         if not no_boundaries:
             param_reg.add_argument('--fisher-source', type=str, default='empirical',
-                                   choices=['empirical', 'squisher_raw', 'squisher_biascorrected',
-                                            'squisher_nscaled', 'squisher_corrected'],
+                                   choices=['empirical','empirical_nscaled', 'squisher_raw', 'squisher_biascorrected',
+                                            'squisher_nscaled','squisher_mscaled' 'squisher_corrected'],
                                    help="-> Fisher: estimate from data (empirical) or recycle Adam's exp_avg_sq"
+                                        "also possible to use empirical_nscale"
                                         " (squisher_raw: as-is; squisher_biascorrected: finite-time correction;"
                                         " squisher_nscaled: x N heuristic;"
+                                        "squisher_mscaled: bias-corrected x m (batch-size-only heuristic);"
                                         " squisher_corrected: x m(n-1)/(n-m) theorem correction)")
             param_reg.add_argument('--fisher-n', type=int, help="-> Fisher: sample size estimating Fisher Information")
             param_reg.add_argument('--fisher-batch', type=int, default=1, metavar='N',

@@ -69,9 +69,11 @@ class ContinualLearner(nn.Module, metaclass=abc.ABCMeta):
                                     #   (different from 1 only works if [fisher_labels]='pred' or 'true')
         self.fisher_source = 'empirical'  #-> where the importance estimate comes from:
                                           #   - 'empirical':           estimate from data (standard EWC)
+                                          #   - 'empirical_nscaled':     estimate from data, then scale by n (N-scaling heuristic)
                                           #   - 'squisher_raw':        Adam's exp_avg_sq as-is (Li et al., 2025)
                                           #   - 'squisher_biascorrected': bias-corrected exp_avg_sq only
                                           #   - 'squisher_nscaled':    exp_avg_sq * n (their N-scaling heuristic)
+                                          #   - 'squisher_mscaled':    bias-corrected exp_avg_sq * m (their batch-size-only heuristic)
                                           #   - 'squisher_corrected':  bias-corrected exp_avg_sq * m(n-1)/(n-m)
         self.train_batch_size = None      #-> training batch size m (needed for 'squisher_corrected')
         self.squisher_log_fidelity = True #-> if recycling the accumulator, also probe the empirical Fisher
@@ -214,6 +216,7 @@ class ContinualLearner(nn.Module, metaclass=abc.ABCMeta):
         - 'squisher_raw':       v_T as-is (raw accumulator, no bias correction; their default)
         - 'squisher_biascorrected': bias-corrected v_T without a batch-size rescaling
         - 'squisher_nscaled':   n * v_T (their N-scaling heuristic for EWC)
+        - 'squisher_mscaled':   m * v_T, v_T is also bias corrected (their batch-size-only heuristic for EWC)
         - 'squisher_corrected': bias-corrected v_T * m(n-1)/(n-m), which by Theorem 1 (at convergence)
                                 recovers the per-sample-mean empirical Fisher scale
 
@@ -250,12 +253,14 @@ class ContinualLearner(nn.Module, metaclass=abc.ABCMeta):
                 m_hat = state['exp_avg'].detach() / (1. - beta1 ** step)
                 signal_sq_info[name] = m_hat.pow(2)
                 exp_avg_sq_norm += state['exp_avg'].detach().pow(2).sum().item()
-                if self.fisher_source in ('squisher_biascorrected', 'squisher_corrected'):
+                if self.fisher_source in ('squisher_biascorrected', 'squisher_corrected', 'squisher_mscaled'):
                     v = v / (1. - beta2 ** step)          # bias correction
                 if self.fisher_source == 'squisher_corrected':
                     v = v * (m * (n - 1.) / (n - m))      # Theorem 1 batch-size correction
                 elif self.fisher_source == 'squisher_nscaled':
                     v = v * n
+                elif self.fisher_source == 'squisher_mscaled':
+                    v = v * m
                 est_fisher_info[name] = v
 
         # Optionally probe the empirical Fisher (ground-truth labels, per-sample mean) for fidelity logging
@@ -338,8 +343,11 @@ class ContinualLearner(nn.Module, metaclass=abc.ABCMeta):
         [dataset]:          <DataSet> to be used to estimate FI-matrix
         [allowed_classes]:  <list> with class-indeces of 'allowed' or 'active' classes'''
 
-        # If the importance estimate should be recycled from the optimizer state, delegate
-        if getattr(self, 'fisher_source', 'empirical') != 'empirical':
+        # If the importance estimate should be recycled from the optimizer state, delegate.
+        # 'empirical' and 'empirical_nscaled' both compute a genuine empirical Fisher from
+        # data below; only the squisher_* sources read Adam's accumulator instead.
+        fisher_source = getattr(self, 'fisher_source', 'empirical')
+        if fisher_source not in ('empirical', 'empirical_nscaled'):
             return self.estimate_fisher_from_accumulator(dataset, allowed_classes=allowed_classes)
 
         # Prepare <dict> to store estimated Fisher Information matrix
@@ -426,6 +434,14 @@ class ContinualLearner(nn.Module, metaclass=abc.ABCMeta):
 
         # Normalize by sample size used for estimation
         est_fisher_info = {n: p/index for n, p in est_fisher_info.items()}
+
+        # Optionally rescale to match squisher_nscaled's convention (x n, the full per-context
+        # dataset size) -- tests whether the accumulator-based sources' apparent need for a much
+        # larger lambda is a genuine scale mismatch against the true empirical Fisher, rather than
+        # something about the accumulator approximation itself.
+        if fisher_source == 'empirical_nscaled':
+            n_dataset = len(dataset)
+            est_fisher_info = {name: p * n_dataset for name, p in est_fisher_info.items()}
 
         # Store new values in the network
         for gen_params in self.param_list:
