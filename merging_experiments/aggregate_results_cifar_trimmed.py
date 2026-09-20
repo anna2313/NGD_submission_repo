@@ -139,9 +139,15 @@ def write_csv(path, rows):
 
 
 def write_markdown(path, suite, rows, expected, missing):
+    # Require BOTH keys, not just _accuracy_mean -- the endpoint accuracies
+    # (model_a, model_b) also end in "_accuracy_mean" but never get a
+    # _share_a_mean (a single trained model has no merge-weight share), so
+    # checking _accuracy_mean alone swept them up as if they were schemes.
     schemes = sorted({
         key[: -len("_accuracy_mean")]
-        for row in rows for key in row if key.endswith("_accuracy_mean")
+        for row in rows for key in row
+        if key.endswith("_accuracy_mean")
+        and key[: -len("_accuracy_mean")] + "_share_a_mean" in row
     })
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", encoding="utf-8") as handle:
