@@ -48,6 +48,15 @@ sys.path.insert(0, str(PROJECT_ROOT))
 from merging_experiments.models import LeNet, ResNet18  # noqa: E402
 from merging_experiments.provenance import collect_runtime_provenance  # noqa: E402
 
+MIN_STEPS = 1000  # floor on optimizer steps -- beta2=0.999's EMA has an effective ~1,000-step
+                   # averaging window (1/(1-beta2)), so a run given too few steps under a fixed
+                   # example budget would have exp_avg_sq dominated by burn-in rather than a
+                   # converged, near-stationary accumulator. Matches Squisher's own MIN_ITERS
+                   # fix for the same reason (and its own TUNE_BATCH=256 hits this same floor
+                   # under the same 256,000-example budget). When this binds, the model
+                   # processes more examples than examples_per_model nominally specifies --
+                   # examples_processed_a/b in the saved JSON reflects the real total.
+
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Heterogeneous-batch Fisher-merging demo.")
@@ -88,12 +97,15 @@ def resolve_training_steps(batch_size_a, batch_size_b, steps, examples_per_model
     if min(batch_size_a, batch_size_b, steps) <= 0:
         raise ValueError("Batch sizes and steps must be positive")
     if examples_per_model is None:
-        return steps, steps
-    if examples_per_model <= 0:
-        raise ValueError("examples_per_model must be positive")
-    if examples_per_model % batch_size_a or examples_per_model % batch_size_b:
-        raise ValueError("examples_per_model must be divisible by both batch sizes")
-    return examples_per_model // batch_size_a, examples_per_model // batch_size_b
+        steps_a = steps_b = steps
+    else:
+        if examples_per_model <= 0:
+            raise ValueError("examples_per_model must be positive")
+        if examples_per_model % batch_size_a or examples_per_model % batch_size_b:
+            raise ValueError("examples_per_model must be divisible by both batch sizes")
+        steps_a = examples_per_model // batch_size_a
+        steps_b = examples_per_model // batch_size_b
+    return max(steps_a, MIN_STEPS), max(steps_b, MIN_STEPS)
 
 
 def build_datasets(data_dir, dataset):
