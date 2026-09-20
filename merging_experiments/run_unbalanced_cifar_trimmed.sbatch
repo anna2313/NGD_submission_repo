@@ -5,10 +5,11 @@
 #SBATCH --partition=gpu
 #SBATCH --gres=gpu:1
 #SBATCH --cpus-per-task=1
-#SBATCH --mem=8G                 # ESTIMATE, unmeasured. ResNet18 on CIFAR; the batch=2048/8000
-                                  # cells also process far more examples than 256,000 due to the
-                                  # MIN_STEPS=1000 floor (up to 8,000,000 examples at batch=8000).
-                                  # Check seff after the first tasks land.
+#SBATCH --mem=2G                 # Not separately measured -- extrapolated from the equal-exposure
+                                  # suite's measured 1.15GB, which included that suite's worst case
+                                  # (batch=8000). This suite never exceeds batch=256, so its actual
+                                  # footprint should be <= 1.15GB. Revisit if a real task here OOMs,
+                                  # though unlikely given the margin.
 #SBATCH --time=03:00:00          # ESTIMATE, unmeasured -- bumped over the full grid's 2h given the
                                   # MIN_STEPS floor's extra compute at batch=2048/8000, and
                                   # probe_fisher()'s per-example sequential passes on ResNet18.

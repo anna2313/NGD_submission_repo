@@ -5,10 +5,11 @@
 #SBATCH --partition=gpu
 #SBATCH --gres=gpu:1
 #SBATCH --cpus-per-task=1
-#SBATCH --mem=8G                 # ESTIMATE, unmeasured. ResNet18 on CIFAR; the batch=2048/8000
-                                  # cells also process far more examples than 256,000 due to the
-                                  # MIN_STEPS=1000 floor (up to 8,000,000 examples at batch=8000).
-                                  # Check seff after the first tasks land.
+#SBATCH --mem=2G                 # MEASURED (2026-09-18): smoke test at batch=8000 (the worst case
+                                  # in this grid) used 1.15GB host RAM against an 8G request. Note
+                                  # this is HOST RAM only -- separate from the GPU memory that
+                                  # actually OOM'd before microbatching was added; --mem never
+                                  # governs GPU memory, so this number says nothing about GPU safety.
 #SBATCH --time=03:00:00          # ESTIMATE, unmeasured -- bumped over the full grid's 2h given the
                                   # MIN_STEPS floor's extra compute at batch=2048/8000, and
                                   # probe_fisher()'s per-example sequential passes on ResNet18.
