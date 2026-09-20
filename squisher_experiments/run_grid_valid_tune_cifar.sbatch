@@ -16,7 +16,7 @@
                                   # variance on this cluster, not just batch-size cost. Sized with margin
                                   # for two slow-node batch=4096 combos back to back in one task. No
                                   # memory issue observed (still well under 4G).
-#SBATCH --array=0-88
+#SBATCH --array=0-115
 #SBATCH --output=squisher_experiments/logs/squisher-cifar-tune-%A_%a.out
 
 set -euo pipefail
@@ -46,7 +46,7 @@ cd "${CHECKOUT_DIR}"
 # wait for `squeue` to show this array fully finished before submitting.
 
 RUNS_PER_TASK=2
-TOTAL_COMBOS=178   # must match len(run_grid_valid.build_none_tune_combos())
+TOTAL_COMBOS=232   # must match len(run_grid_valid.build_none_tune_combos())
 
 START=$(( SLURM_ARRAY_TASK_ID * RUNS_PER_TASK ))
 END=$(( START + RUNS_PER_TASK - 1 ))

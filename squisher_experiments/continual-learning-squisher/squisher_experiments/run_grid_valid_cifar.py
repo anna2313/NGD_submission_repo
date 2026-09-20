@@ -57,9 +57,11 @@ BEST_LAMBDAS_PATH = LOG_DIR / "best_lambdas.json"
 
 SOURCES = [
     "empirical",
+    "empirical_nscaled",
     "squisher_raw",
     "squisher_biascorrected",
     "squisher_nscaled",
+    "squisher_mscaled",
     "squisher_corrected",
 ]
 TUNE_BATCH = 256
