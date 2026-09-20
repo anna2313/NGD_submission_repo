@@ -21,6 +21,6 @@ cd "${SLURM_SUBMIT_DIR:?SLURM_SUBMIT_DIR not set -- submit this from the repo ro
 time python merging_experiments/fisher_merging_demo.py --dataset cifar10 \
   --batch_size_a 8000 --batch_size_b 256 --examples_per_model 256000 \
   --learning_rate 0.001 --beta2 0.999 --probe_size 512 --seed 0 --device cuda \
-  --output_dir merging_experiments/results/smoketest_trimmed
+  --output_dir merging_experiments/results/smoketest_trimmed --microbatch_size 1024
 
 echo "Smoke test finished."
