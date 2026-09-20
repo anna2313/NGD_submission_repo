@@ -356,8 +356,9 @@ def main():
         if args.examples_per_model is not None
         else f"s{args.steps}"
     )
+    dataset_tag = "" if args.dataset == "mnist" else f"{args.dataset}_"
     output_path = output_dir / (
-        f"merge_{args.dataset}_m{args.batch_size_a}v{args.batch_size_b}_{budget_tag}"
+        f"merge_{dataset_tag}m{args.batch_size_a}v{args.batch_size_b}_{budget_tag}"
         f"{f'_na{args.shard_size_a}' if args.shard_size_a is not None else ''}"
         f"_seed{args.seed}.json"
     )
