@@ -39,6 +39,11 @@ EXAMPLES_PER_MODEL = 256_000  # divisible by every batch below: 32, 256, 2048, 8
 BATCH_PAIRS = [(32, 256), (256, 256), (2048, 256), (8000, 256)]
 UNBALANCED_SHARD_SIZES_A = (1_000, 5_000, 15_000, 25_000)
 UNBALANCED_BATCH = 256
+MICROBATCH_CAP = 1024  # confirmed necessary via smoke test (2026-09-18): batch_size_a=8000 through
+                        # ResNet18 in one forward pass OOM'd a 24GB GPU (~22.7GB used, crashed in
+                        # layer2). Chunking to 1024 fixed it (measured: 29m25s, 1.15GB host RAM, no
+                        # GPU OOM). Mathematically identical to one large-batch step -- see
+                        # fisher_merging_demo.py's train_model() for why.
 
 
 def build_commands(suite="equal_exposure_trend", examples_per_model=EXAMPLES_PER_MODEL, seeds=(0, 1, 2)):
