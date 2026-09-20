@@ -52,9 +52,22 @@ BASE_SCHEMES = [
     "probe_theory_raw",
     "squisher_raw",
     "squisher_nscaled",
+    "squisher_mscaled",
     "squisher_corrected",
 ]
-SCHEME_COLORS = dict(zip(BASE_SCHEMES, plt.cm.tab10.colors))
+# Okabe-Ito colorblind-safe palette, hand-assigned rather than tab10's default
+# order -- tab10's green/red pairing (originally assigned to squisher_raw/
+# squisher_nscaled) is hard to tell apart at a glance and for red-green color
+# blindness specifically. Also fixes a real bug: squisher_mscaled was missing
+# from BASE_SCHEMES entirely, so it silently fell back to plain black.
+SCHEME_COLORS = {
+    "probe_fisher": "#0072B2",         # blue
+    "probe_theory_raw": "#E69F00",     # orange
+    "squisher_raw": "#009E73",         # green
+    "squisher_nscaled": "#D55E00",     # vermillion
+    "squisher_mscaled": "#CC79A7",     # pink
+    "squisher_corrected": "#6A3D9A",   # purple
+}
 UNIFORM_COLOR = "0.4"
 
 

@@ -38,11 +38,12 @@ DEFAULT_OUTPUT_DIR = Path("merging_experiments/results")
 # uniform is excluded: both models get an all-ones vector, so its ratio is
 # always exactly 1 by construction and carries no information.
 SCHEME_COLORS = {
-    "probe_fisher": "tab:blue",
-    "probe_theory_raw": "tab:orange",
-    "squisher_raw": "tab:green",
-    "squisher_nscaled": "tab:red",
-    "squisher_corrected": "tab:purple",
+    "probe_fisher": "#0072B2",         # blue
+    "probe_theory_raw": "#E69F00",     # orange
+    "squisher_raw": "#009E73",         # green
+    "squisher_nscaled": "#D55E00",     # vermillion
+    "squisher_mscaled": "#CC79A7",     # pink
+    "squisher_corrected": "#6A3D9A",   # purple
 }
 
 
@@ -57,6 +58,8 @@ def importance_norm(scheme, diag, batch_size):
         return raw_norm
     if scheme == "squisher_nscaled":
         return raw_norm * batch_size
+    if scheme == "squisher_mscaled":
+        return raw_norm / bc2 * batch_size
     if scheme == "squisher_corrected":
         return raw_norm / bc2 * factor
     if scheme == "probe_fisher":
@@ -64,7 +67,6 @@ def importance_norm(scheme, diag, batch_size):
     if scheme == "probe_theory_raw":
         return probe_norm * bc2 / factor
     raise ValueError(f"no norm reconstruction for scheme {scheme!r}")
-
 
 def load_runs(results_dir: Path):
     runs = []
