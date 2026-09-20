@@ -74,6 +74,8 @@ def build_commands(suite="equal_exposure_trend", examples_per_model=EXAMPLES_PER
             ]
             if shard_size_a is not None:
                 command.extend(["--shard_size_a", str(shard_size_a)])
+            if max(batch_size_a, batch_size_b) > MICROBATCH_CAP:
+                command.extend(["--microbatch_size", str(MICROBATCH_CAP)])
             commands.append(command)
     return commands
 
