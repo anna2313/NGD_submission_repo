@@ -20,7 +20,7 @@ LOG_DIR = Path(__file__).resolve().parent / "logs_valid_tuned_cifar"
 
 ACC_PATTERN = re.compile(r"average accuracy over all \d+ contexts: ([0-9.]+)")
 KEY_PATTERN = re.compile(
-    r"^(?P<source>none|empirical|squisher_\w+?)_b(?P<batch>\d+)(?:_lam(?P<lam>[0-9e+.-]+))?_s(?P<seed>\d+)"
+    r"^(?P<source>none|empirical_nscaled|empirical|squisher_\w+?)_b(?P<batch>\d+)(?:_lam(?P<lam>[0-9e+.-]+))?_s(?P<seed>\d+)"
     r"(?P<tuned>_vs[0-9.]+)?$"
 )
 FIDELITY_PATTERN = re.compile(
