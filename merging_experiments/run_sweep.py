@@ -32,6 +32,8 @@ def output_path(command: list[str]) -> Path | None:
     if out_dir is None:
         return None
     if "merging_experiments/fisher_merging_demo.py" in command:
+        dataset = _arg_value(command, "--dataset") or "mnist"
+        dataset_tag = "" if dataset == "mnist" else f"{dataset}_"
         batch_size_a = _arg_value(command, "--batch_size_a")
         batch_size_b = _arg_value(command, "--batch_size_b")
         examples = _arg_value(command, "--examples_per_model")
@@ -43,7 +45,7 @@ def output_path(command: list[str]) -> Path | None:
         budget_tag = f"e{examples}" if examples is not None else f"s{steps}"
         shard_tag = f"_na{shard_size_a}" if shard_size_a is not None else ""
         return Path(out_dir) / (
-            f"merge_m{batch_size_a}v{batch_size_b}_{budget_tag}{shard_tag}_seed{seed}.json"
+            f"merge_{dataset_tag}m{batch_size_a}v{batch_size_b}_{budget_tag}{shard_tag}_seed{seed}.json"
         )
     opt = _arg_value(command, "--optimizer_name")
     beta2 = _arg_value(command, "--beta2")
