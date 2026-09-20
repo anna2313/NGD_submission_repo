@@ -238,7 +238,7 @@ def add_cl_options(parser, main=False, compare_all=False, compare_replay=False, 
         if not no_boundaries:
             param_reg.add_argument('--fisher-source', type=str, default='empirical',
                                    choices=['empirical','empirical_nscaled', 'squisher_raw', 'squisher_biascorrected',
-                                            'squisher_nscaled','squisher_mscaled' 'squisher_corrected'],
+                                            'squisher_nscaled','squisher_mscaled', 'squisher_corrected'],
                                    help="-> Fisher: estimate from data (empirical) or recycle Adam's exp_avg_sq"
                                         "also possible to use empirical_nscale"
                                         " (squisher_raw: as-is; squisher_biascorrected: finite-time correction;"
