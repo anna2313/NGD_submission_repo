@@ -289,6 +289,8 @@ def main():
     }
     nscaled_a = scale_importances(raw_a, shard_size_a)
     nscaled_b = scale_importances(raw_b, shard_size_b)
+    mscaled_a = scale_importances(corr_a, shard_size_a)
+    mscaled_b = scale_importances(corr_b, shard_size_b)
     fisher_sum_a = scale_importances(fisher_a, shard_size_a)
     fisher_sum_b = scale_importances(fisher_b, shard_size_b)
     theory_raw_sum_a = scale_importances(theory_raw_a, shard_size_a)
@@ -303,6 +305,7 @@ def main():
         "probe_theory_raw": (theory_raw_a, theory_raw_b),
         "squisher_raw": (raw_a, raw_b),
         "squisher_nscaled": (nscaled_a, nscaled_b),
+        "squisher_mscaled": (mscaled_a, mscaled_b),
         "squisher_corrected": (corr_a, corr_b),
         "probe_fisher_sum": (fisher_sum_a, fisher_sum_b),
         "probe_theory_raw_sum": (theory_raw_sum_a, theory_raw_sum_b),
