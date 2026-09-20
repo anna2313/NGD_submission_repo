@@ -45,7 +45,7 @@ if str(PROJECT_ROOT) in sys.path:
     sys.path.remove(str(PROJECT_ROOT))
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from merging_experiments.models import LeNet  # noqa: E402
+from merging_experiments.models import LeNet, ResNet18  # noqa: E402
 from merging_experiments.provenance import collect_runtime_provenance  # noqa: E402
 
 
@@ -77,6 +77,8 @@ def parse_args():
     parser.add_argument("--device", default="cpu")
     parser.add_argument("--data_dir", default="merging_experiments/data")
     parser.add_argument("--lenet_width", type=int, default=1)
+    parser.add_argument("--dataset", choices=["mnist", "cifar10"], default="mnist",
+                     help="mnist -> LeNet on 1x28x28; cifar10 -> ResNet18 on 3x32x32.")
     parser.add_argument("--merge_eps", type=float, default=1e-12)
     parser.add_argument("--output_dir", default="merging_experiments/results")
     return parser.parse_args()
@@ -94,13 +96,21 @@ def resolve_training_steps(batch_size_a, batch_size_b, steps, examples_per_model
     return examples_per_model // batch_size_a, examples_per_model // batch_size_b
 
 
-def build_datasets(data_dir):
-    transform = transforms.Compose([
-        transforms.ToTensor(),
-        transforms.Normalize((0.1307,), (0.3081,)),
-    ])
-    train = torchvision.datasets.MNIST(root=data_dir, train=True, download=True, transform=transform)
-    test = torchvision.datasets.MNIST(root=data_dir, train=False, download=True, transform=transform)
+def build_datasets(data_dir, dataset):
+    if dataset == "cifar10":
+        transform = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2470, 0.2435, 0.2616)),
+        ])
+        train = torchvision.datasets.CIFAR10(root=data_dir, train=True, download=True, transform=transform)
+        test = torchvision.datasets.CIFAR10(root=data_dir, train=False, download=True, transform=transform)
+    else:
+        transform = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize((0.1307,), (0.3081,)),
+        ])
+        train = torchvision.datasets.MNIST(root=data_dir, train=True, download=True, transform=transform)
+        test = torchvision.datasets.MNIST(root=data_dir, train=False, download=True, transform=transform)
     return train, test
 
 
@@ -175,9 +185,14 @@ def accumulator_importances(model, optimizer, batch_size, shard_size, steps, bet
 def scale_importances(importances, scalar):
     return {name: value * scalar for name, value in importances.items()}
 
+def build_model(dataset, width):
+    if dataset == "cifar10":
+        return ResNet18(num_classes=10)
+    return LeNet(width=width)
 
-def merge_models(model_a, model_b, weights_a, weights_b, eps, width):
-    merged = LeNet(width=width).to(next(model_a.parameters()).device)
+
+def merge_models(model_a, model_b, weights_a, weights_b, eps, dataset, width):
+    merged = build_model(dataset, width).to(next(model_a.parameters()).device)
     merged.load_state_dict(model_a.state_dict())
     params_a = dict(model_a.named_parameters())
     params_b = dict(model_b.named_parameters())
@@ -219,7 +234,7 @@ def main():
     torch.manual_seed(args.seed)
     device = torch.device(args.device)
 
-    train, test = build_datasets(args.data_dir)
+    train, test = build_datasets(args.data_dir, args.dataset)
     n_train = len(train)
     perm = torch.randperm(n_train, generator=torch.Generator().manual_seed(args.seed))
     shard_size_a = args.shard_size_a if args.shard_size_a is not None else n_train // 2
@@ -232,7 +247,7 @@ def main():
     xs_b, ys_b = tensorize(train, perm[shard_size_a:].tolist(), device)
     xs_test, ys_test = tensorize(test, range(len(test)), device)
 
-    base = LeNet(width=args.lenet_width).to(device)
+    base = build_model(args.dataset, args.lenet_width).to(device)
     model_a = copy.deepcopy(base)
     model_b = copy.deepcopy(base)
 
@@ -325,7 +340,7 @@ def main():
         "provenance": collect_runtime_provenance(PROJECT_ROOT),
     }
     for scheme, (w_a, w_b) in schemes.items():
-        merged, share_a = merge_models(model_a, model_b, w_a, w_b, args.merge_eps, args.lenet_width)
+        merged, share_a = merge_models(model_a, model_b, w_a, w_b, args.merge_eps, args.dataset, args.lenet_width)
         merged.to(device)
         results["merges"][scheme] = {
             "test_accuracy": evaluate(merged, xs_test, ys_test),
@@ -342,7 +357,7 @@ def main():
         else f"s{args.steps}"
     )
     output_path = output_dir / (
-        f"merge_m{args.batch_size_a}v{args.batch_size_b}_{budget_tag}"
+        f"merge_{args.dataset}_m{args.batch_size_a}v{args.batch_size_b}_{budget_tag}"
         f"{f'_na{args.shard_size_a}' if args.shard_size_a is not None else ''}"
         f"_seed{args.seed}.json"
     )
