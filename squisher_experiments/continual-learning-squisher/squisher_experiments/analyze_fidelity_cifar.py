@@ -30,7 +30,7 @@ import numpy as np
 DEFAULT_DIR = Path(__file__).resolve().parent / "logs_valid_tuned_cifar"
 
 KEY_PATTERN = re.compile(
-    r"^(?P<source>none|empirical|squisher_\w+?)_b(?P<batch>\d+)(?:_lam(?P<lam>[0-9e+.-]+))?_s(?P<seed>\d+)"
+    r"^(?P<source>none|empirical_nscaled|empirical|squisher_\w+?)_b(?P<batch>\d+)(?:_lam(?P<lam>[0-9e+.-]+))?_s(?P<seed>\d+)"
     r"(?P<tuned>_vs[0-9.]+)?$"
 )
 
@@ -38,9 +38,11 @@ KEY_PATTERN = re.compile(
 # to compare across figures.
 SOURCE_ORDER = [
     "empirical",
+    "empirical_nscaled",
     "squisher_raw",
     "squisher_biascorrected",
     "squisher_nscaled",
+    "squisher_mscaled",
     "squisher_corrected",
 ]
 SOURCE_COLORS = dict(zip(SOURCE_ORDER, plt.cm.tab10.colors))
