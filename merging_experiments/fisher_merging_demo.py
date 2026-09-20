@@ -62,6 +62,11 @@ def parse_args():
     parser = argparse.ArgumentParser(description="Heterogeneous-batch Fisher-merging demo.")
     parser.add_argument("--batch_size_a", type=int, default=32)
     parser.add_argument("--batch_size_b", type=int, default=512)
+    parser.add_argument("--microbatch_size", type=int, default=None,
+                     help="If set and smaller than batch_size, split each optimizer step into "
+                          "sequential chunks of this size, accumulating gradients before stepping "
+                          "-- avoids holding the full batch's activations in GPU memory at once, "
+                          "with no change to the training result.")
     parser.add_argument("--steps", type=int, default=2000)
     parser.add_argument(
         "--examples_per_model",
@@ -140,12 +145,23 @@ def train_model(model, xs, ys, batch_size, args, generator, steps):
         weight_decay=args.weight_decay,
     )
     n = xs.size(0)
+    # Split each optimizer step into smaller forward/backward chunks when the full
+    # batch would not fit on the GPU (e.g. batch_size=8000 through ResNet18). This
+    # is mathematically identical to one large-batch step: each chunk's loss is
+    # scaled by its share of the full batch, so the SUMMED gradient across chunks
+    # equals the true batch-mean gradient -- exp_avg_sq ends up seeing exactly what
+    # it would have seen from one un-chunked step. Only affects memory usage, never
+    # the result. When microbatch_size is None or >= batch_size, this is a no-op:
+    # the loop runs exactly once, identical to the original code.
+    micro = args.microbatch_size or batch_size
     model.train()
     for _ in range(steps):
         idx = torch.randint(n, (batch_size,), generator=generator, device=xs.device)
         optimizer.zero_grad(set_to_none=True)
-        loss = nn.functional.cross_entropy(model(xs[idx]), ys[idx])
-        loss.backward()
+        for start in range(0, batch_size, micro):
+            sub_idx = idx[start : start + micro]
+            loss = nn.functional.cross_entropy(model(xs[sub_idx]), ys[sub_idx]) * (len(sub_idx) / batch_size)
+            loss.backward()
         optimizer.step()
     return optimizer
 
