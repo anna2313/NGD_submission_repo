@@ -289,8 +289,8 @@ def main():
     }
     nscaled_a = scale_importances(raw_a, shard_size_a)
     nscaled_b = scale_importances(raw_b, shard_size_b)
-    mscaled_a = scale_importances(corr_a, shard_size_a)
-    mscaled_b = scale_importances(corr_b, shard_size_b)
+    mscaled_a = {name: value / diag_a["correction_factor"] * args.batch_size_a for name, value in corr_a.items()}
+    mscaled_b = {name: value / diag_b["correction_factor"] * args.batch_size_b for name, value in corr_b.items()}
     fisher_sum_a = scale_importances(fisher_a, shard_size_a)
     fisher_sum_b = scale_importances(fisher_b, shard_size_b)
     theory_raw_sum_a = scale_importances(theory_raw_a, shard_size_a)
