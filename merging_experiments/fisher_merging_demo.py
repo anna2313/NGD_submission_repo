@@ -260,8 +260,8 @@ def main():
         name: value * diag_b["second_moment_bias_correction"] / diag_b["correction_factor"]
         for name, value in fisher_b.items()
     }
-    nscaled_a = scale_importances(raw_a, args.batch_size_a)
-    nscaled_b = scale_importances(raw_b, args.batch_size_b)
+    nscaled_a = scale_importances(raw_a, shard_size_a)
+    nscaled_b = scale_importances(raw_b, shard_size_b)
     nscaled_sum_a = scale_importances(nscaled_a, shard_size_a)
     nscaled_sum_b = scale_importances(nscaled_b, shard_size_b)
     fisher_sum_a = scale_importances(fisher_a, shard_size_a)
