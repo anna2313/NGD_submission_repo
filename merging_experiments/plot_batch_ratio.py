@@ -47,6 +47,20 @@ SCHEME_COLORS = {
 }
 
 
+def lighten(hex_color, amount=0.45):
+    """Blend a hex color toward white by `amount` -- gives each _sum variant
+    a genuinely distinct, legible color in the same hue family as its base
+    scheme, rather than reusing the identical color under a dashed line."""
+    hex_color = hex_color.lstrip("#")
+    r, g, b = (int(hex_color[i : i + 2], 16) for i in (0, 2, 4))
+    r = round(r + (255 - r) * amount)
+    g = round(g + (255 - g) * amount)
+    b = round(b + (255 - b) * amount)
+    return f"#{r:02x}{g:02x}{b:02x}"
+
+
+SUM_SCHEME_COLORS = {base: lighten(color) for base, color in SCHEME_COLORS.items()}
+
 def importance_norm(scheme, diag, batch_size):
     """Reconstructs the L2 norm of one model's importance vector for a given
     scheme, from that model's saved diagnostics."""
@@ -104,8 +118,15 @@ def plot_performance(grouped, out_path: Path):
             accs = [run["merges"][scheme]["test_accuracy"] for run in grouped[pair]]
             means.append(np.mean(accs))
             stds.append(np.std(accs))
-        color = SCHEME_COLORS.get(scheme, "gray")
-        linestyle = "--" if scheme.endswith("_sum") else ("-." if scheme == "uniform" else "-")
+        if scheme == "uniform":
+            color = "0.4"
+            linestyle = "-."
+        else:
+            is_sum = scheme.endswith("_sum")
+            base = scheme[: -len("_sum")] if is_sum else scheme
+            colors = SUM_SCHEME_COLORS if is_sum else SCHEME_COLORS
+            color = colors.get(base, "gray")
+            linestyle = "--" if is_sum else "-"
         ax.errorbar(ratios, means, yerr=stds, marker="o", markersize=4, capsize=3,
                     label=scheme, color=color, linestyle=linestyle, linewidth=1.3)
 

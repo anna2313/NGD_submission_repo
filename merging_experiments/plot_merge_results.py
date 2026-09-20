@@ -68,6 +68,22 @@ SCHEME_COLORS = {
     "squisher_mscaled": "#CC79A7",     # pink
     "squisher_corrected": "#6A3D9A",   # purple
 }
+
+
+def lighten(hex_color, amount=0.45):
+    """Blend a hex color toward white by `amount` (0 = unchanged, 1 = white).
+    Used so each _sum variant gets a genuinely distinct color -- not just a
+    dashed line reusing its base scheme's exact color -- while staying in the
+    same hue family, so the mean/sum grouping is still visually obvious."""
+    hex_color = hex_color.lstrip("#")
+    r, g, b = (int(hex_color[i : i + 2], 16) for i in (0, 2, 4))
+    r = round(r + (255 - r) * amount)
+    g = round(g + (255 - g) * amount)
+    b = round(b + (255 - b) * amount)
+    return f"#{r:02x}{g:02x}{b:02x}"
+
+
+SUM_SCHEME_COLORS = {base: lighten(color) for base, color in SCHEME_COLORS.items()}
 UNIFORM_COLOR = "0.4"
 
 
@@ -127,17 +143,21 @@ def discover_schemes(row):
 
 
 def scheme_style(scheme):
-    """Colour by base scheme, dashed for the _sum convention."""
+    """Colour by base scheme; _sum variants get a lightened tint of the same
+    hue plus a dashed line, so the mean/sum convention is visible even
+    without color (colorblind-safe) but the sum line is also genuinely a
+    different, legible color rather than an identical color under a dash."""
     if scheme == "uniform":
         return {"color": UNIFORM_COLOR, "linestyle": "-.", "linewidth": 1.2}
-    base = scheme[: -len("_sum")] if scheme.endswith("_sum") else scheme
+    is_sum = scheme.endswith("_sum")
+    base = scheme[: -len("_sum")] if is_sum else scheme
+    colors = SUM_SCHEME_COLORS if is_sum else SCHEME_COLORS
     style = {
-        "color": SCHEME_COLORS.get(base, "black"),
-        "linestyle": "--" if scheme.endswith("_sum") else "-",
+        "color": colors.get(base, "black"),
+        "linestyle": "--" if is_sum else "-",
         "linewidth": 1.4,
     }
     if base == "probe_fisher":
-        # The reference the accumulator schemes are approximating.
         style["linewidth"] = 2.6
     return style
 
