@@ -59,19 +59,20 @@ def build_commands(suite="equal_exposure_trend", examples_per_model=EXAMPLES_PER
     for batch_size_a, batch_size_b, shard_size_a in settings:
         for seed in seeds:
             command = [
-                "python",
-                "merging_experiments/fisher_merging_demo.py",
-                "--dataset", "cifar10",
-                "--batch_size_a", str(batch_size_a),
-                "--batch_size_b", str(batch_size_b),
-                "--examples_per_model", str(examples_per_model),
-                "--steps", "2000",
-                "--learning_rate", "0.001",
-                "--beta2", "0.999",
-                "--probe_size", "512",
-                "--seed", str(seed),
-                "--output_dir", output_dir,
-            ]
+                    "python",
+                    "merging_experiments/fisher_merging_demo.py",
+                    "--dataset", "cifar10",
+                    "--batch_size_a", str(batch_size_a),
+                    "--batch_size_b", str(batch_size_b),
+                    "--examples_per_model", str(examples_per_model),
+                    "--min_steps", "300",
+                    "--steps", "2000",
+                    "--learning_rate", "0.001",
+                    "--beta2", "0.999",
+                    "--probe_size", "512",
+                    "--seed", str(seed),
+                    "--output_dir", output_dir,
+                ]
             if shard_size_a is not None:
                 command.extend(["--shard_size_a", str(shard_size_a)])
             if max(batch_size_a, batch_size_b) > MICROBATCH_CAP:
