@@ -352,6 +352,10 @@ def main():
             "model_a": evaluate(model_a, xs_test, ys_test),
             "model_b": evaluate(model_b, xs_test, ys_test),
         },
+        "shard_accuracy": {
+            "model_a": evaluate(model_a, xs_a, ys_a),
+            "model_b": evaluate(model_b, xs_b, ys_b),
+        },
         "diagnostics": {
             "model_a": {**diag_a, "probe_fisher_norm": float(flat(fisher_a).norm()),
                         "probe_grad_norm": float(flat(grad_a).norm()),
