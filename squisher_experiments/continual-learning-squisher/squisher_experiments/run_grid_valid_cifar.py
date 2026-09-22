@@ -68,7 +68,7 @@ TUNE_BATCH = 256
 EXPERIMENT = "CIFAR10"
 CONTEXTS = 5            # CIFAR10 default; 50,000 train / 5 = 10,000 per context
 TRANSFER_BATCHES = [32, 64, 128, 512, 1024, 1536, 2048, 4096]
-MIN_ITERS = 2000  # floor on iterations/context (2026-09-14) -- with a fixed EXAMPLES_PER_CONTEXT budget,
+MIN_ITERS = 1000  # floor on iterations/context (2026-09-14) -- with a fixed EXAMPLES_PER_CONTEXT budget,
                    # large batches get too few iterations for the exp_avg_sq accumulator to burn in
                    # against beta2=0.999's ~1,000-step horizon (e.g. batch=4096 would only get ~63
                    # iterations otherwise). Matches batch=128's own iteration count, which is already
