@@ -11,7 +11,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from data_generator import generate_normal_data
+from data_generator import generate_circular_classification_data
 
 
 def parser():
@@ -96,19 +96,19 @@ if __name__ == "__main__":
     # Generate and save data for each configuration
     if args.regenerate_data:
         print("Generating data...")
-        generate_normal_data(
-            theta=theta,
+        generate_circular_classification_data(
+            r_inner=theta[0],
+            r_outer=theta[1],
             sigma=sigma,
             number_of_datapoints=number_of_datapoints,
             output_file=f"{where_to_save}/training_data.csv",
-            allow_multiple_theta=False,
         )
-        generate_normal_data(
-            theta=theta,
+        generate_circular_classification_data(
+            r_inner=theta[0],
+            r_outer=theta[1],
             sigma=sigma,
             number_of_datapoints=number_of_test_points,
             output_file=f"{where_to_save}/test_data.csv",
-            allow_multiple_theta=False,
         )
         print("Data generation complete.")
     else:
