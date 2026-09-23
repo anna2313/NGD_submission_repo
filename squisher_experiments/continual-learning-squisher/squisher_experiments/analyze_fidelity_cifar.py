@@ -196,12 +196,12 @@ def plot_accuracy_vs_lambda(results_rows, out_path: Path):
         print("[skip] plot_accuracy_vs_lambda: no results.csv data")
         return
 
-    tuned_rows = [r for r in results_rows if r["batch"] == 256 and r["tuned"] and r["source"] != "none"]
+    tuned_rows = [r for r in results_rows if r["batch"] == 128 and r["tuned"] and r["source"] != "none"]
     if not tuned_rows:
-        print("[skip] plot_accuracy_vs_lambda: no tuned batch=256 rows found")
+        print("[skip] plot_accuracy_vs_lambda: no tuned batch=128 rows found")
         return
 
-    none_rows = [r for r in results_rows if r["source"] == "none" and r["batch"] == 256]
+    none_rows = [r for r in results_rows if r["source"] == "none" and r["batch"] == 128]
 
     fig, ax = plt.subplots(figsize=(7, 5))
     for source in SOURCE_ORDER:
@@ -230,7 +230,7 @@ def plot_accuracy_vs_lambda(results_rows, out_path: Path):
     ax.set_xscale("log")
     ax.set_xlabel("lambda (reg-strength)")
     ax.set_ylabel("accuracy (solid=test, dashed=validation)")
-    ax.set_title("Accuracy vs lambda at batch=256 (tune stage)")
+    ax.set_title("Accuracy vs lambda at batch=128 (tune stage)")
     ax.legend(fontsize=8)
     fig.tight_layout()
     fig.savefig(out_path, dpi=150)
@@ -247,9 +247,9 @@ def plot_fidelity_vs_lambda(fidelity_summary_rows, out_path: Path):
         print("[skip] plot_fidelity_vs_lambda: no fidelity.csv data")
         return
 
-    tuned = [r for r in fidelity_summary_rows if r["batch"] == 256 and r["tuned"] and r["lambda"] != ""]
+    tuned = [r for r in fidelity_summary_rows if r["batch"] == 128 and r["tuned"] and r["lambda"] != ""]
     if not tuned:
-        print("[skip] plot_fidelity_vs_lambda: no tuned batch=256 fidelity rows found")
+        print("[skip] plot_fidelity_vs_lambda: no tuned batch=128 fidelity rows found")
         return
 
     fig, (ax_cos, ax_norm) = plt.subplots(2, 1, figsize=(7, 8), sharex=True)
@@ -268,7 +268,7 @@ def plot_fidelity_vs_lambda(fidelity_summary_rows, out_path: Path):
         ax_norm.plot(lambdas, norm_medians, color=color, marker="o", label=source)
 
     ax_cos.set_ylabel("mean cosine(accumulator, probe Fisher)\n(point size ~ fraction finite)")
-    ax_cos.set_title("Fidelity vs lambda at batch=256 (tune stage)")
+    ax_cos.set_title("Fidelity vs lambda at batch=128 (tune stage)")
     ax_cos.legend(fontsize=8)
 
     ax_norm.set_xscale("log")
@@ -291,7 +291,7 @@ def plot_batch_transfer(results_rows, out_path: Path):
         print("[skip] plot_batch_transfer: no results.csv data")
         return
 
-    transfer_rows = [r for r in results_rows if r["batch"] != 256  and r["source"] != "none"]
+    transfer_rows = [r for r in results_rows if r["batch"] != 128  and r["source"] != "none"]
     if not transfer_rows:
         print("[skip] plot_batch_transfer: no transfer-stage rows found")
         return
@@ -309,7 +309,7 @@ def plot_batch_transfer(results_rows, out_path: Path):
         none_by_batch[r["batch"]].append(r["test_accuracy"])
 
     fig, ax = plt.subplots(figsize=(7, 5))
-    batches = sorted({256, *transfer_batches})
+    batches = sorted({128, *transfer_batches})
     for source, lam in selected_lambda.items():
         means, stds = [], []
         for batch in batches:
