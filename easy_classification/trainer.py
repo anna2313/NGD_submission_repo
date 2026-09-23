@@ -20,59 +20,51 @@ from optimizers import (
     get_loss_and_per_sample_grads,
 )
 
-from data_generator import CustomDataset, generate_normal_data
+from data_generator import CustomDatasetClassification, generate_circular_classification_data
 from torch.utils.data import DataLoader
-from model import NeuralNetwork
+from model import CircularMLP
 from utils import compute_fisher_snapshot, to_json_number
 
 
 
 def setup_data(args, theta, sigma, where_to_save="easy_classification/data"):
-    """Generate synthetic data and create data loaders.
-
-    Args:
-        args: Parsed command-line arguments
-        theta: Numpy array of true parameter values
-        sigma: Numpy array of noise standard deviations
-        where_to_save: Directory to save the generated data
-
-    Returns:
-        tuple: (train_loader, test_dataloader, Xdim, outdim)
-    """
+    ...
     number_of_datapoints = args.number_of_datapoints
     number_of_test_points = args.number_of_test_points
     batch_size = args.batch_size
 
-    Xdim = len(theta)
+    if len(theta) != 2:
+        raise ValueError("Theta needs to define the two radiuses")
+    if theta[0] <= 0 or theta[1] <= 0:
+        raise ValueError("Theta describes the radiuses so it has to be positive")
+
+    r_inner = theta[0]
+    r_outer = theta[1]
 
     # Generate synthetic data (only if regenerate_data is True)
     if args.regenerate_data:
-        generate_normal_data(
-            theta=theta,
+        generate_circular_classification_data(
+            r_inner=r_inner,
+            r_outer=r_outer,
             sigma=sigma,
             number_of_datapoints=number_of_datapoints,
             output_file=f"{where_to_save}/training_data.csv",
-            allow_multiple_theta=False,
-            mu=args.mu,
         )
-        generate_normal_data(
-            theta=theta,
+        generate_circular_classification_data(
+            r_inner=r_inner,
+            r_outer=r_outer,
             sigma=sigma,
             number_of_datapoints=number_of_test_points,
             output_file=f"{where_to_save}/test_data.csv",
-            allow_multiple_theta=False,
-            mu=args.mu,
         )
 
-    train_data = CustomDataset(f"{where_to_save}/training_data.csv", Xdim)
-    test_data = CustomDataset(f"{where_to_save}/test_data.csv", Xdim)
+    train_data = CustomDatasetClassification(f"{where_to_save}/training_data.csv")
+    test_data = CustomDatasetClassification(f"{where_to_save}/test_data.csv")
 
     train_loader = DataLoader(train_data, batch_size=batch_size, shuffle=True)
     test_dataloader = DataLoader(test_data, batch_size=batch_size)
 
-    outdim = sigma.size
-
-    return train_loader, test_dataloader, Xdim, outdim
+    return train_loader, test_dataloader
 
 
 def parse_args():
@@ -149,8 +141,8 @@ def parse_args():
     parser.add_argument(
         "--initialization_type",
         type=str,
-        default="around_gt",
-        choices=["around_gt", "normal", "from_pt"],
+        default="normal",
+        choices=[ "normal", "from_pt"],
         help="How to initialize model parameters: random or load from a .pt file",
     )
     parser.add_argument(
@@ -315,7 +307,7 @@ def main(args):
     device = resolve_device(args.device)
 
     # Generate data and create data loaders
-    train_loader, _, Xdim, outdim = setup_data(args, theta, sigma)
+    train_loader, _ = setup_data(args, theta, sigma)
 
     # Check that dataset size is divisible by batch size to avoid issues with per-sample gradients.
     dataset_size = len(train_loader.dataset)
@@ -332,25 +324,18 @@ def main(args):
         f"  optimizer={optimizer_name} lr={base_lr} betas={betas} weight_decay={weight_decay}"
     )
     print(f"  epochs={epochs} batch_size={batch_size} train_batches={train_batches}")
-    print(f"  Xdim={Xdim} outdim={outdim}")
 
-    dim = Xdim
     # print(f"Input dimension: {dim}, Output dimension: {outdim}")
-    model = NeuralNetwork(dim, outdim).to(device)
+    model = CircularMLP(in_dim=2, out_dim=1).to(device)
 
     # Initialize model parameters
     if args.initialization_type == "normal":
-        for param in model.parameters():
-            nn.init.normal_(param, mean=0.0, std=0.01)
-    elif args.initialization_type == "around_gt":
-        # Initialize the parameters with the true theta + noise
-        theta_init = torch.tensor(theta, dtype=torch.float64)
-        if args.init_std > 0:
-            # Add Gaussian noise around true theta
-            noise = torch.randn_like(theta_init) * args.init_std
-            theta_init = theta_init + noise
-        with torch.no_grad():
-            model.linear.weight.data = theta_init.unsqueeze(0).repeat(outdim, 1)
+        for name, param in model.named_parameters():
+            if "weight" in name:
+                nn.init.normal_(param, mean=0.0, std=0.01)
+            elif "bias" in name:
+                nn.init.zeros_(param)
+        print("Initialized model parameters with normal(mean=0,std=0.01)")
     elif args.initialization_type == "from_pt":
         if args.initialization_model_path is None:
             raise ValueError(
@@ -370,7 +355,7 @@ def main(args):
         raise ValueError(f"Unknown initialization type: {args.initialization_type}")
 
     lr = base_lr
-    criterion = nn.MSELoss(reduction="mean")
+    criterion = nn.BCELoss()
     if optimizer_name == "ReAdam":
         optimizer = ReAdam(
             model.parameters(),
