@@ -4,7 +4,8 @@
 #SBATCH --job-name=squisher-mixed-lambda
 #SBATCH --partition=gpu
 #SBATCH --gres=gpu:1
-#SBATCH --exclude=gpu-biomed-01  # V100 (Volta) node: the ngd torch build cannot run convolutions there
+#SBATCH --exclude=gpu-biomed-[01,03,07,08]  # GPUs the ngd torch build (2.9.0+cu126, sm_50..sm_90) cannot run:
+                                              # 01 = V100 (2026-10-19); 03/07/08 = 'no kernel image' (2026-11-02, job 9957294)
 #SBATCH --cpus-per-task=1
 #SBATCH --mem=6G                 # measured ~1 GB for pretraining on 2026-10-19; continual-learning runs are similar
 #SBATCH --time=03:00:00          # batch-32 contexts take 40,000 steps (1.28M examples); ~30-45 min per run expected
