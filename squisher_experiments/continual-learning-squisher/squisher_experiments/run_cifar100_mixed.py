@@ -37,6 +37,14 @@ Usage (from the checkout root, i.e. the directory containing main.py):
   python squisher_experiments/run_cifar100_mixed.py --stage lrcal                          # run all, sequentially
 Runs are resumable: a log that already contains both accuracy lines is skipped.
 
+RECIPES (2026-11-12): the environment variable MIXED_RECIPE selects the training recipe.
+  unset / "base"  the original design described above (logs_cifar100_mixed/).
+  "ct"            cosine-tail recipe from the context-1 pilot (run_cifar100_pilot.py): every context gets
+                  40,000 steps at lr 1e-4 with --lr-decay cosine-tail, whatever its batch size; no lrcal
+                  stage (the lr is fixed); half-decade lambda grid 1e1, 1e2, ..., 1e10; own log directory
+                  logs_cifar100_mixed_ct/. select_cifar100_mixed.py and parse_results_cifar100_mixed.py
+                  import from this file and follow the same variable. The *_ct sbatch files set it.
+
 NOTE: lambda-stage keys contain the batch's lr and test-stage keys contain all four lrs, so changing
 best_lr.json never silently reuses runs made with a different lr. Test-stage keys also contain the
 lambda. The random sequences are fixed by SEQUENCE_SEED.
@@ -44,6 +52,7 @@ lambda. The random sequences are fixed by SEQUENCE_SEED.
 
 import argparse
 import json
+import os
 import random
 import re
 import subprocess
@@ -102,6 +111,23 @@ TEST_SEEDS = [1, 2, 3]
 TEST_ARMS = ["none", "fisher", "nscaled", "mscaled", "corrected"]
 SQUISHER_PROBE_N = 512  # fidelity diagnostic only; does not affect training
 
+# ---- Recipe switch (see RECIPES in the module docstring) ----
+RECIPE = os.environ.get("MIXED_RECIPE", "base")
+LR_DECAY = "none"  # passed to main.py --lr-decay only if not "none"
+FIXED_ITERS = None  # if set: iterations per context for every batch size
+FIXED_LR = None  # if set: lr for every batch size (no lrcal stage)
+if RECIPE == "ct":
+    LOG_DIR = Path(__file__).resolve().parent / "logs_cifar100_mixed_ct"
+    BEST_LR_PATH = LOG_DIR / "best_lr.json"
+    BEST_LAMBDAS_PATH = LOG_DIR / "best_lambdas.json"
+    LAMBDA_GRID = [10.0**k for k in range(1, 11)]
+    LR_DECAY = "cosine-tail"
+    FIXED_ITERS = 40_000
+    FIXED_LR = 1e-4
+elif RECIPE != "base":
+    raise SystemExit(f"unknown MIXED_RECIPE={RECIPE!r} (use 'base' or 'ct')")
+print(f"[recipe] MIXED_RECIPE={RECIPE}  logs: {LOG_DIR.name}", file=sys.stderr)
+
 ACC_PATTERN = re.compile(r"average accuracy over all \d+ contexts: ([0-9.]+)")
 CONTEXT_ACC_PATTERN = re.compile(r"^\s*- Context (\d+): ([0-9.]+)")
 SCHEDULE_PATTERN = re.compile(
@@ -123,6 +149,8 @@ FIDELITY_PATTERN = re.compile(
 
 
 def iters_for(batch: int) -> int:
+    if FIXED_ITERS is not None:
+        return FIXED_ITERS
     return max(round(EXAMPLES_PER_CONTEXT / batch), MIN_ITERS)
 
 
@@ -144,6 +172,8 @@ def build_sequences() -> list[list[int]]:
 
 
 def load_best_lr() -> dict:
+    if FIXED_LR is not None:
+        return {b: FIXED_LR for b in BATCHES}
     if not BEST_LR_PATH.exists():
         raise SystemExit(
             f"{BEST_LR_PATH} not found -- run the 'lrcal' stage and "
@@ -308,6 +338,8 @@ def build_test_combos(best_lr: dict, best_lambdas: dict) -> list[dict]:
 
 def combos_for(stage: str) -> list[dict]:
     if stage == "lrcal":
+        if FIXED_LR is not None:
+            raise SystemExit(f"MIXED_RECIPE={RECIPE} uses a fixed lr; there is no lrcal stage")
         return build_lrcal_combos()
     best_lr = load_best_lr()
     if stage == "lambda":
@@ -350,6 +382,8 @@ def build_command(combo: dict) -> list[str]:
         "--iters-schedule",
         ",".join(str(iters_for(b)) for b in batches),
     ]
+    if LR_DECAY != "none":
+        command += ["--lr-decay", LR_DECAY]
     if combo["arm"] != "none":
         command += [
             "--ewc",
