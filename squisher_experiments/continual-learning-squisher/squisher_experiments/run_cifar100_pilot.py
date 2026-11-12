@@ -6,8 +6,14 @@ trained for real (no EWC penalty is active there, so lambda is irrelevant); cont
 each so that main.py finishes normally. squisher_corrected is used only to get the SQUISHER-FIDELITY
 line for context 1.
 
-Grid: (b32, lr 1e-4) x steps {2k, 5k, 10k, 40k} and (b2048, lr 1e-3) x steps {1k, 2k, 5k, 10k}
-      x lr decay {none, cosine} x seeds {1, 2, 3} = 48 runs. lrs = best_lr.json of phase 1.
+Grid (all x seeds {1, 2, 3}; new combos are always appended, so earlier indices and run names never
+change and finished runs are skipped):
+  0-47   round 1: (b32, lr 1e-4) x steps {2k, 5k, 10k, 40k} and (b2048, lr 1e-3) x steps {1k, 2k, 5k, 10k}
+         x lr decay {none, cosine}. lrs = best_lr.json of phase 1.
+  48-56  extension, cosine: (b2048, lr 1e-3, 40k) and (b2048, lr 1e-4, {10k, 40k}) -- at b2048, is it
+         the length of the low-lr tail, or the lr?
+  57-89  'cosine-tail' (cosine to 1% over the first 75% of steps, then 1% held) on all 8 round-1
+         settings and the 3 extension settings.
 
 Usage: --count | --combo-index I | --summary     (logs in logs_cifar100_pilot/)
 """
@@ -27,6 +33,9 @@ from run_cifar100_mixed import (
 LOG_DIR = Path(__file__).resolve().parent / "logs_cifar100_pilot"
 SETTINGS = [(32, 1e-4, [2000, 5000, 10000, 40000]), (2048, 1e-3, [1000, 2000, 5000, 10000])]
 DECAYS = ["none", "cosine"]
+# appended after the original 48 so their combo indices stay the same: (batch, lr, steps), cosine only
+EXTENSION = [(2048, 1e-3, 40000), (2048, 1e-4, 10000), (2048, 1e-4, 40000)]
+TAIL_DECAY = "cosine-tail"  # appended after the extension (indices 57-89)
 SEEDS = [1, 2, 3]
 LAMBDA = 1e1  # irrelevant for context 1
 
@@ -39,6 +48,15 @@ def combos():
                 for seed in SEEDS:
                     out.append(dict(batch=batch, lr=lr, steps=steps, decay=decay, seed=seed,
                                     key=f"pilot_b{batch}_lr{lr:.0e}_it{steps}_{decay}_s{seed}"))
+    for batch, lr, steps in EXTENSION:
+        for seed in SEEDS:
+            out.append(dict(batch=batch, lr=lr, steps=steps, decay="cosine", seed=seed,
+                            key=f"pilot_b{batch}_lr{lr:.0e}_it{steps}_cosine_s{seed}"))
+    tail_settings = [(b, lr, st_) for b, lr, budgets in SETTINGS for st_ in budgets] + EXTENSION
+    for batch, lr, steps in tail_settings:
+        for seed in SEEDS:
+            out.append(dict(batch=batch, lr=lr, steps=steps, decay=TAIL_DECAY, seed=seed,
+                            key=f"pilot_b{batch}_lr{lr:.0e}_it{steps}_{TAIL_DECAY}_s{seed}"))
     return out
 
 
@@ -108,20 +126,22 @@ def summary():
     print("Context 1 only; medians over seeds (n = number of finished seeds).")
     print("valid = just-learned validation acc; norm_ratio = corrected estimate / probe Fisher (1 = Theorem 1);")
     print("final_loss = median training loss over the last 5% of steps; spike = max/median loss in the 2nd half.\n")
-    print(f"{'batch':>5} {'steps':>6} {'decay':>6} {'n':>2} {'valid':>7} {'norm_ratio':>11} {'raw_v':>10} "
-          f"{'final_loss':>11} {'spike':>9}  spike per seed")
+    print(f"{'batch':>5} {'lr':>6} {'steps':>6} {'decay':>11} {'n':>2} {'valid':>7} {'norm_ratio':>11} {'raw_v':>10} "
+          f"{'final_loss':>11} {'spike':>9}  norm_ratio per seed")
     rows = {}
     for c in combos():
-        rows.setdefault((c["batch"], c["steps"], c["decay"]), []).append(parse(LOG_DIR / f"{c['key']}.log"))
-    for (b, s, d), rs in rows.items():
-        rs = [r for r in rs if r is not None]
+        rows.setdefault((c["batch"], c["lr"], c["steps"], c["decay"]), []).append(
+            parse(LOG_DIR / f"{c['key']}.log"))
+    order = {"none": 0, "cosine": 1, "cosine-tail": 2}
+    for (b, lr, s, d) in sorted(rows, key=lambda k: (k[0], -k[1], k[2], order[k[3]])):
+        rs = [r for r in rows[(b, lr, s, d)] if r is not None]
         if not rs:
-            print(f"{b:>5} {s:>6} {d:>6} {0:>2}  (no finished runs)")
+            print(f"{b:>5} {lr:>6.0e} {s:>6} {d:>11} {0:>2}  (no finished runs)")
             continue
         med = lambda k: st.median(r[k] for r in rs)
-        print(f"{b:>5} {s:>6} {d:>6} {len(rs):>2} {100 * med('valid'):>7.2f} {med('norm_ratio'):>11.3g} "
+        print(f"{b:>5} {lr:>6.0e} {s:>6} {d:>11} {len(rs):>2} {100 * med('valid'):>7.2f} {med('norm_ratio'):>11.3g} "
               f"{med('raw_v'):>10.3g} {med('final_loss'):>11.3g} {med('spike'):>9.3g}  "
-              + " ".join(f"{r['spike']:.2g}" for r in rs))
+              + " ".join(f"{r['norm_ratio']:.3g}" for r in rs))
 
 
 def main():

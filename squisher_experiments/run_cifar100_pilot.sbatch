@@ -7,9 +7,9 @@
 #SBATCH --exclude=gpu-biomed-[01,03,07,08]  # GPUs the ngd torch build (2.9.0+cu126, sm_50..sm_90) cannot run
 #SBATCH --cpus-per-task=1
 #SBATCH --mem=6G
-#SBATCH --time=01:00:00          # longest run: context 1 with 40,000 steps at b32 or 10,000 at b2048 (~5-10 min)
+#SBATCH --time=02:00:00          # longest runs: context 1 with 40,000 steps at b2048 (indices 48-89)
 #SBATCH --propagate=NONE
-#SBATCH --array=0-47
+#SBATCH --array=0-89            # 0-47 round 1 (done), 48-56 cosine extension, 57-89 cosine-tail
 #SBATCH --output=squisher_experiments/logs/squisher-pilot-%A_%a.out
 
 set -euo pipefail

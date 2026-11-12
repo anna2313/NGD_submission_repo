@@ -428,11 +428,20 @@ def train_cl(
             # ---> Train MAIN MODEL
             if batch_index <= iters:
 
-                # ---- NEW: per-context lr decay (cosine from the scheduled lr to 0 over this context) ----
-                if lr_decay == "cosine" and lr_schedule is not None:
-                    lr_now = lr_schedule[context - 1] * 0.5 * (
-                        1.0 + math.cos(math.pi * (batch_index - 1) / iters)
-                    )
+                # ---- NEW: per-context lr decay ----
+                # 'cosine':      cosine from the scheduled lr to 0 over this context
+                # 'cosine-tail': cosine from the scheduled lr to 1% over the first 75% of this context,
+                #                then constant at 1% for the last 25%
+                if lr_decay in ("cosine", "cosine-tail") and lr_schedule is not None:
+                    t = (batch_index - 1) / iters
+                    if lr_decay == "cosine":
+                        factor = 0.5 * (1.0 + math.cos(math.pi * t))
+                    else:
+                        floor, t_end = 0.01, 0.75
+                        factor = floor if t >= t_end else floor + (1.0 - floor) * 0.5 * (
+                            1.0 + math.cos(math.pi * t / t_end)
+                        )
+                    lr_now = lr_schedule[context - 1] * factor
                     for group in model.optimizer.param_groups:
                         group["lr"] = lr_now
 
