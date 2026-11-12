@@ -382,6 +382,14 @@ def add_train_options(
             metavar="I1,I2,...",
             help="per-context number of iterations, comma-separated, one per context",
         )
+        train_params.add_argument(
+            "--lr-decay",
+            type=str,
+            default="none",
+            choices=["none", "cosine"],
+            help="per-context lr decay (requires the per-context schedules): 'cosine' decays each "
+            "context's scheduled lr to 0 over that context's iterations",
+        )
     if not pretrain:
         train_params.add_argument(
             "--optimizer",

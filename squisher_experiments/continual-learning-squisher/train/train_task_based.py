@@ -1,3 +1,4 @@
+import math
 import torch
 from torch import optim
 from torch.utils.data.dataloader import DataLoader
@@ -26,6 +27,7 @@ def train_cl(
     batch_schedule=None,
     lr_schedule=None,
     iters_schedule=None,
+    lr_decay="none",
     **kwargs,
 ):
     """Train a model (with a "train_a_batch" method) on multiple contexts.
@@ -425,6 +427,14 @@ def train_cl(
 
             # ---> Train MAIN MODEL
             if batch_index <= iters:
+
+                # ---- NEW: per-context lr decay (cosine from the scheduled lr to 0 over this context) ----
+                if lr_decay == "cosine" and lr_schedule is not None:
+                    lr_now = lr_schedule[context - 1] * 0.5 * (
+                        1.0 + math.cos(math.pi * (batch_index - 1) / iters)
+                    )
+                    for group in model.optimizer.param_groups:
+                        group["lr"] = lr_now
 
                 # Train the main model with this batch
                 loss_dict = model.train_a_batch(

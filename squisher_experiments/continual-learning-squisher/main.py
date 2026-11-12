@@ -652,12 +652,17 @@ def run(args, verbose=False):
             print(
                 "SCHEDULE context={} batch={} lr={:g} iters={}".format(c, b, lr_c, it)
             )
+        lr_decay = getattr(args, "lr_decay", "none")
+        print("LR-DECAY type={}".format(lr_decay))
         schedule_kwargs = dict(
             batch_schedule=batch_schedule,
             lr_schedule=lr_schedule,
             iters_schedule=iters_schedule,
+            lr_decay=lr_decay,
         )
     else:
+        if getattr(args, "lr_decay", "none") != "none":
+            raise ValueError("--lr-decay requires --batch-schedule, --lr-schedule and --iters-schedule")
         schedule_kwargs = {}
 
     # Train model
