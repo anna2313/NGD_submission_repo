@@ -14,6 +14,8 @@ change and finished runs are skipped):
          the length of the low-lr tail, or the lr?
   57-89  'cosine-tail' (cosine to 1% over the first 75% of steps, then 1% held) on all 8 round-1
          settings and the 3 extension settings.
+  90-98  'exponential' (lr * 0.001^(t/T)) on the 40k-step settings: (b32, lr 1e-4), (b2048, lr 1e-4),
+         (b2048, lr 1e-3).
 
 Usage: --count | --combo-index I | --summary     (logs in logs_cifar100_pilot/)
 """
@@ -36,6 +38,7 @@ DECAYS = ["none", "cosine"]
 # appended after the original 48 so their combo indices stay the same: (batch, lr, steps), cosine only
 EXTENSION = [(2048, 1e-3, 40000), (2048, 1e-4, 10000), (2048, 1e-4, 40000)]
 TAIL_DECAY = "cosine-tail"  # appended after the extension (indices 57-89)
+EXP_SETTINGS = [(32, 1e-4, 40000), (2048, 1e-4, 40000), (2048, 1e-3, 40000)]  # indices 90-98
 SEEDS = [1, 2, 3]
 LAMBDA = 1e1  # irrelevant for context 1
 
@@ -57,6 +60,10 @@ def combos():
         for seed in SEEDS:
             out.append(dict(batch=batch, lr=lr, steps=steps, decay=TAIL_DECAY, seed=seed,
                             key=f"pilot_b{batch}_lr{lr:.0e}_it{steps}_{TAIL_DECAY}_s{seed}"))
+    for batch, lr, steps in EXP_SETTINGS:
+        for seed in SEEDS:
+            out.append(dict(batch=batch, lr=lr, steps=steps, decay="exponential", seed=seed,
+                            key=f"pilot_b{batch}_lr{lr:.0e}_it{steps}_exponential_s{seed}"))
     return out
 
 
@@ -132,7 +139,7 @@ def summary():
     for c in combos():
         rows.setdefault((c["batch"], c["lr"], c["steps"], c["decay"]), []).append(
             parse(LOG_DIR / f"{c['key']}.log"))
-    order = {"none": 0, "cosine": 1, "cosine-tail": 2}
+    order = {"none": 0, "cosine": 1, "cosine-tail": 2, "exponential": 3}
     for (b, lr, s, d) in sorted(rows, key=lambda k: (k[0], -k[1], k[2], order[k[3]])):
         rs = [r for r in rows[(b, lr, s, d)] if r is not None]
         if not rs:

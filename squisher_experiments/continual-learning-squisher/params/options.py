@@ -386,10 +386,11 @@ def add_train_options(
             "--lr-decay",
             type=str,
             default="none",
-            choices=["none", "cosine", "cosine-tail"],
+            choices=["none", "cosine", "cosine-tail", "exponential"],
             help="per-context lr decay (requires the per-context schedules): 'cosine' decays each "
             "context's scheduled lr to 0 over that context's iterations; 'cosine-tail' decays it "
-            "to 1%% over the first 75%% of the iterations and holds 1%% for the last 25%%",
+            "to 1%% over the first 75%% of the iterations and holds 1%% for the last 25%%; "
+            "'exponential' decays it smoothly to 0.1%% at the last iteration (lr * 0.001^(t/T))",
         )
     if not pretrain:
         train_params.add_argument(

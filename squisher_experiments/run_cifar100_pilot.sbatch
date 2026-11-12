@@ -9,7 +9,7 @@
 #SBATCH --mem=6G
 #SBATCH --time=02:00:00          # longest runs: context 1 with 40,000 steps at b2048 (indices 48-89)
 #SBATCH --propagate=NONE
-#SBATCH --array=0-89            # 0-47 round 1 (done), 48-56 cosine extension, 57-89 cosine-tail
+#SBATCH --array=0-98            # 0-47 round 1, 48-56 cosine extension, 57-89 cosine-tail, 90-98 exponential
 #SBATCH --output=squisher_experiments/logs/squisher-pilot-%A_%a.out
 
 set -euo pipefail

@@ -432,10 +432,13 @@ def train_cl(
                 # 'cosine':      cosine from the scheduled lr to 0 over this context
                 # 'cosine-tail': cosine from the scheduled lr to 1% over the first 75% of this context,
                 #                then constant at 1% for the last 25%
-                if lr_decay in ("cosine", "cosine-tail") and lr_schedule is not None:
+                # 'exponential': lr * 0.001^(t/T), i.e. smoothly from the scheduled lr to 0.1% at the last step
+                if lr_decay in ("cosine", "cosine-tail", "exponential") and lr_schedule is not None:
                     t = (batch_index - 1) / iters
                     if lr_decay == "cosine":
                         factor = 0.5 * (1.0 + math.cos(math.pi * t))
+                    elif lr_decay == "exponential":
+                        factor = 0.001 ** (batch_index / iters)
                     else:
                         floor, t_end = 0.01, 0.75
                         factor = floor if t >= t_end else floor + (1.0 - floor) * 0.5 * (
